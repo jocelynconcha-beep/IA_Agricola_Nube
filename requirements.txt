@@ -1,0 +1,10 @@
+streamlit
+pandas
+pypdf
+pymupdf
+python-dotenv
+plotly
+reportlab
+openpyxl
+python-docx
+requests
