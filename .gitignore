@@ -1,0 +1,30 @@
+# Credenciales privadas
+.env
+.streamlit/secrets.toml
+
+# Entornos y caché de Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Base de datos y PDF locales
+agro.db
+pdfs/
+
+# Respaldos y archivos del sistema
+*.bak
+*.bak_*
+.DS_Store
+
+# Programas usados solo para migración
+probar_conexion_supabase.py
+probar_conexion_supabase_rest.py
+migrar_sqlite_a_supabase.py
+subir_pdfs_supabase.py
+adaptar_pdfs_nube.py
+
+# Programas auxiliares de reparación
+forzar_visor_pdf_final.py
+reparar_compatibilidad_selectores.py
+subir_pdfs_supabase.py+
