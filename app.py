@@ -1954,6 +1954,30 @@ st.markdown(
 )
 
 
+
+# Espacio inferior para evitar que la marca de Streamlit tape contenido
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+        .block-container {
+            padding-bottom: 13rem !important;
+        }
+
+        div[data-testid="stAppViewBlockContainer"] {
+            padding-bottom: 13rem !important;
+        }
+
+        .modo-terreno-action-grid {
+            margin-bottom: 8rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
