@@ -4952,26 +4952,61 @@ if False:
             "cultivo autorizado, carencia, reingreso, compatibilidad e incompatibilidades."
         )
 
-
-# Visor PDF final forzado
+# Visor PDF compatible con Streamlit Cloud
 def mostrar_pdf_bytes(pdf_bytes, alto=850):
-    import base64
+    import hashlib
+    import fitz
     import streamlit as st
 
     if not pdf_bytes:
         st.warning("No se pudo cargar el PDF.")
         return
 
-    base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+    try:
+        documento = fitz.open(
+            stream=pdf_bytes,
+            filetype="pdf"
+        )
 
-    st.markdown(
-        f"""
-        <iframe
-            src="data:application/pdf;base64,{base64_pdf}"
-            width="100%"
-            height="{alto}"
-            style="border: 1px solid #d1d5db; border-radius: 12px; background: white;">
-        </iframe>
-        """,
-        unsafe_allow_html=True
-    )
+        total_paginas = documento.page_count
+
+        if total_paginas == 0:
+            st.warning("El PDF no contiene páginas.")
+            documento.close()
+            return
+
+        identificador = hashlib.sha1(pdf_bytes).hexdigest()[:12]
+
+        pagina_seleccionada = st.number_input(
+            "Página del PDF",
+            min_value=1,
+            max_value=total_paginas,
+            value=1,
+            step=1,
+            key=f"pagina_pdf_{identificador}"
+        )
+
+        pagina = documento.load_page(
+            int(pagina_seleccionada) - 1
+        )
+
+        matriz = fitz.Matrix(1.7, 1.7)
+        imagen = pagina.get_pixmap(
+            matrix=matriz,
+            alpha=False
+        ).tobytes("png")
+
+        st.caption(
+            f"Página {int(pagina_seleccionada)} de {total_paginas}"
+        )
+
+        st.image(
+            imagen,
+            use_container_width=True
+        )
+
+        documento.close()
+
+    except Exception as error:
+        st.error(f"No fue posible visualizar el PDF: {error}")
+
