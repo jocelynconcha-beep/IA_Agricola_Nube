@@ -1822,6 +1822,91 @@ st.markdown(
 )
 
 
+
+# Compactación extra de tarjetas en teléfono
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-selector-card
+        ) {
+            margin-bottom: 6px !important;
+            border-radius: 14px !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-selector-card
+        ) > div {
+            padding: 5px 7px 7px 7px !important;
+        }
+
+        .modo-terreno-selector-card {
+            padding: 5px 7px !important;
+            margin: 0 0 3px 0 !important;
+            border-radius: 12px !important;
+        }
+
+        .modo-terreno-filter-tools {
+            min-height: 48px !important;
+            gap: 7px !important;
+        }
+
+        .modo-terreno-selector-icon {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            flex-basis: 34px !important;
+            border-radius: 9px !important;
+        }
+
+        .modo-terreno-selector-emoji {
+            font-size: 1.18rem !important;
+        }
+
+        .modo-terreno-selector-title {
+            font-size: 0.94rem !important;
+            line-height: 1.05 !important;
+        }
+
+        .modo-terreno-selector-value {
+            font-size: 0.69rem !important;
+            line-height: 1.05 !important;
+        }
+
+        div[data-baseweb="select"] {
+            margin-top: 1px !important;
+        }
+
+        div[data-baseweb="select"] > div {
+            min-height: 38px !important;
+            height: 38px !important;
+            border-radius: 9px !important;
+        }
+
+        div[data-baseweb="select"] span {
+            font-size: 0.84rem !important;
+        }
+
+        /* Menos espacio vertical entre tarjetas */
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-selector-card
+        ) {
+            gap: 0.18rem !important;
+        }
+
+        /* Evitar que botones flotantes tapen el contenido */
+        .block-container {
+            padding-bottom: 8rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
