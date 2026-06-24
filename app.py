@@ -1978,6 +1978,70 @@ st.markdown(
 )
 
 
+
+# Ajuste inferior para navegación móvil
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        /* Intentar ocultar elementos inferiores de Streamlit */
+        footer,
+        [data-testid="stFooter"],
+        [data-testid="stBottom"],
+        [data-testid="stBottomBlockContainer"],
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            min-height: 0 !important;
+        }
+
+        /* Espacio seguro para Safari y Chrome móvil */
+        .block-container,
+        div[data-testid="stAppViewBlockContainer"] {
+            padding-bottom: calc(10rem + env(safe-area-inset-bottom)) !important;
+        }
+
+        /* Texto bajo el selector de malezas */
+        div[data-testid="stCaptionContainer"] {
+            margin-top: 0.2rem !important;
+            margin-bottom: 0.35rem !important;
+        }
+
+        div[data-testid="stCaptionContainer"] p {
+            font-size: 0.82rem !important;
+            line-height: 1.3 !important;
+        }
+
+        /* Compactar el sector del buscador */
+        div[data-testid="stTextInput"] {
+            margin-top: 0.15rem !important;
+            margin-bottom: 0.3rem !important;
+        }
+
+        div[data-testid="stTextInput"] input {
+            min-height: 42px !important;
+            font-size: 0.92rem !important;
+        }
+
+        /* Dejar libres los últimos controles */
+        div[data-testid="stButton"],
+        div[data-testid="stDownloadButton"] {
+            scroll-margin-bottom: 9rem !important;
+        }
+
+        .modo-terreno-action-grid {
+            padding-bottom: 6rem !important;
+            margin-bottom: 6rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
