@@ -2042,6 +2042,107 @@ st.markdown(
 )
 
 
+
+# Orden final de datos en las tarjetas de productos móviles
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        .modo-terreno-product-row-link {
+            display: grid !important;
+            grid-template-columns: 46px minmax(0, 1fr) !important;
+            grid-template-rows: auto auto auto auto !important;
+            gap: 7px 10px !important;
+            align-items: start !important;
+            min-height: 0 !important;
+            padding: 12px !important;
+            overflow: visible !important;
+        }
+
+        /* Ícono */
+        .modo-terreno-product-row-link > div:nth-child(1) {
+            grid-column: 1 !important;
+            grid-row: 1 / 5 !important;
+            align-self: start !important;
+        }
+
+        /* Nombre e ingrediente */
+        .modo-terreno-product-row-link > div:nth-child(2) {
+            grid-column: 2 !important;
+            grid-row: 1 !important;
+            min-width: 0 !important;
+        }
+
+        /* Tipo de producto */
+        .modo-terreno-product-row-link > div:nth-child(3) {
+            grid-column: 2 !important;
+            grid-row: 2 !important;
+            min-width: 0 !important;
+        }
+
+        /* Grupo IRAC / FRAC / HRAC */
+        .modo-terreno-product-row-link > div:nth-child(4) {
+            grid-column: 2 !important;
+            grid-row: 3 !important;
+            min-width: 0 !important;
+        }
+
+        /* Abejas */
+        .modo-terreno-product-row-link > div:nth-child(5) {
+            grid-column: 2 !important;
+            grid-row: 4 !important;
+            min-width: 0 !important;
+        }
+
+        .modo-terreno-product-name-box {
+            font-size: 1rem !important;
+            line-height: 1.2 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            margin: 0 0 3px 0 !important;
+        }
+
+        .modo-terreno-product-name-meta {
+            font-size: 0.88rem !important;
+            line-height: 1.25 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        .modo-terreno-pill,
+        .modo-terreno-bee {
+            display: inline-block !important;
+            width: auto !important;
+            max-width: 100% !important;
+            padding: 5px 10px !important;
+            margin: 0 !important;
+            border-radius: 999px !important;
+            font-size: 0.78rem !important;
+            line-height: 1.2 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        .modo-terreno-lista-meta {
+            font-size: 0.82rem !important;
+            line-height: 1.3 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        .modo-terreno-lista-meta strong {
+            display: block !important;
+            font-size: 0.76rem !important;
+            margin-bottom: 2px !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
