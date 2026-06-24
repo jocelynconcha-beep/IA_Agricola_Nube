@@ -1723,6 +1723,105 @@ st.markdown(
 )
 
 
+
+# Tarjetas compactas para teléfono
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        /* Menos separación entre las tarjetas */
+        div[data-testid="stHorizontalBlock"]:has(
+            .modo-terreno-selector-card
+        ) {
+            gap: 0.45rem !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-selector-card
+        ) {
+            gap: 0.35rem !important;
+        }
+
+        /* Tarjeta completa */
+        .modo-terreno-selector-card {
+            min-height: 0 !important;
+            padding: 7px 9px 6px 9px !important;
+            margin: 0 0 5px 0 !important;
+            border-radius: 14px !important;
+        }
+
+        /* Parte superior de la tarjeta */
+        .modo-terreno-filter-tools {
+            min-height: 0 !important;
+            gap: 8px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* Ícono */
+        .modo-terreno-selector-icon {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            flex-basis: 40px !important;
+            border-radius: 11px !important;
+        }
+
+        .modo-terreno-selector-emoji {
+            font-size: 1.35rem !important;
+            line-height: 1 !important;
+        }
+
+        /* Título y subtítulo */
+        .modo-terreno-selector-title {
+            font-size: 0.98rem !important;
+            line-height: 1.1 !important;
+            margin: 0 !important;
+        }
+
+        .modo-terreno-selector-value {
+            font-size: 0.74rem !important;
+            line-height: 1.15 !important;
+            margin-top: 1px !important;
+        }
+
+        /* Selector de opciones */
+        div[data-baseweb="select"] {
+            margin-top: 3px !important;
+        }
+
+        div[data-baseweb="select"] > div {
+            min-height: 42px !important;
+            height: 42px !important;
+            border-radius: 10px !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        div[data-baseweb="select"] span {
+            font-size: 0.88rem !important;
+        }
+
+        /* Menos espacio entre componentes de Streamlit */
+        div[data-testid="stElementContainer"]:has(
+            .modo-terreno-selector-card
+        ) {
+            margin-bottom: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-selector-card
+        ) > div {
+            padding: 7px 8px !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
