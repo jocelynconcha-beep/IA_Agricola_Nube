@@ -2143,6 +2143,134 @@ st.markdown(
 )
 
 
+
+# Diseño compacto del cuadro informativo y botones de búsqueda
+st.markdown(
+    """
+    <style>
+    .modo-terreno-info-box {
+        padding: 6px 12px !important;
+        margin: 2px auto 6px auto !important;
+        border-width: 1.5px !important;
+        border-radius: 13px !important;
+        box-shadow: none !important;
+    }
+
+    .modo-terreno-info-title {
+        font-size: 0.9rem !important;
+        line-height: 1.15 !important;
+        margin-bottom: 1px !important;
+    }
+
+    .modo-terreno-info-subtitle {
+        font-size: 0.76rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .modo-terreno-buscar-marker,
+    .modo-terreno-limpiar-marker {
+        display: none;
+    }
+
+    div[data-testid="stVerticalBlock"]:has(
+        .modo-terreno-buscar-marker
+    ) div.stButton > button {
+        min-height: 46px;
+        border: 1px solid #168854 !important;
+        border-radius: 13px !important;
+        background: linear-gradient(
+            135deg,
+            #15965b,
+            #087944
+        ) !important;
+        color: white !important;
+        font-weight: 850 !important;
+        box-shadow: 0 7px 16px rgba(8, 121, 68, 0.20) !important;
+    }
+
+    div[data-testid="stVerticalBlock"]:has(
+        .modo-terreno-buscar-marker
+    ) div.stButton > button:hover {
+        background: linear-gradient(
+            135deg,
+            #10834f,
+            #066b3b
+        ) !important;
+        border-color: #066b3b !important;
+        transform: translateY(-1px);
+    }
+
+    div[data-testid="stVerticalBlock"]:has(
+        .modo-terreno-limpiar-marker
+    ) div.stButton > button {
+        min-height: 46px;
+        border: 1px solid #9dcdb5 !important;
+        border-radius: 13px !important;
+        background: #f4fbf7 !important;
+        color: #17663d !important;
+        font-weight: 850 !important;
+        box-shadow: none !important;
+    }
+
+    div[data-testid="stVerticalBlock"]:has(
+        .modo-terreno-limpiar-marker
+    ) div.stButton > button:hover {
+        border-color: #168854 !important;
+        background: #e8f7ef !important;
+        color: #0d7545 !important;
+    }
+
+    @media screen and (max-width: 600px) {
+        .modo-terreno-info-box {
+            padding: 5px 9px !important;
+            margin: 1px 0 5px 0 !important;
+            border-radius: 11px !important;
+        }
+
+        .modo-terreno-info-title {
+            font-size: 0.84rem !important;
+        }
+
+        .modo-terreno-info-subtitle {
+            font-size: 0.7rem !important;
+        }
+
+        div[data-testid="stTextInput"] label p {
+            font-size: 0.84rem !important;
+            font-weight: 750 !important;
+        }
+
+        div[data-testid="stTextInput"] input {
+            min-height: 40px !important;
+            font-size: 0.88rem !important;
+            border-radius: 11px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(
+            .modo-terreno-buscar-marker
+        ) {
+            gap: 0.5rem !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-buscar-marker
+        ) div.stButton > button,
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-limpiar-marker
+        ) div.stButton > button {
+            min-height: 42px !important;
+            padding: 7px 8px !important;
+            border-radius: 11px !important;
+            font-size: 0.86rem !important;
+            margin-bottom: 0 !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
@@ -4372,23 +4500,32 @@ with tab_modo_terreno:
                 )
 
             busqueda_terreno = st.text_input(
-                "Buscar por nombre del producto u otro dato de etiqueta",
-                key="modo_terreno_busqueda"
+                "Buscar producto o dato de etiqueta",
+                key="modo_terreno_busqueda",
+                placeholder="Ej.: Pirimor, tomate, pulgón..."
             )
 
             col_buscar, col_limpiar = st.columns([1, 1])
 
             with col_buscar:
+                st.markdown(
+                    '<div class="modo-terreno-buscar-marker"></div>',
+                    unsafe_allow_html=True
+                )
                 st.button(
-                    "Buscar",
+                    "🔎 Buscar",
                     key="modo_terreno_boton_buscar",
                     on_click=buscar_productos_modo_terreno,
                     use_container_width=True
                 )
 
             with col_limpiar:
+                st.markdown(
+                    '<div class="modo-terreno-limpiar-marker"></div>',
+                    unsafe_allow_html=True
+                )
                 st.button(
-                    "Eliminar filtro",
+                    "↺ Limpiar",
                     key="modo_terreno_eliminar_filtro_inferior",
                     on_click=limpiar_filtros_modo_terreno,
                     use_container_width=True
