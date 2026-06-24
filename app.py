@@ -4203,8 +4203,7 @@ with tab_modo_terreno:
 
             if not columna_malezas:
                 st.caption(
-                    "La base actual no tiene una columna específica de malezas; "
-                    "este selector queda preparado para usarla cuando exista información disponible."
+                    "El filtro de malezas estará disponible cuando se incorporen esos datos."
                 )
 
             busqueda_terreno = st.text_input(
