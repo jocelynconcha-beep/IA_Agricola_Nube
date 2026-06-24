@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 import pandas as pd
 import requests
@@ -110,6 +111,57 @@ def migrar_bd():
 def crear_tabla_experiencias_campo():
     # La tabla ya fue creada en Supabase.
     return None
+
+
+# -------------------------------------------------------------------
+# SUPABASE STORAGE
+# -------------------------------------------------------------------
+
+def subir_pdf_storage(
+    nombre_archivo,
+    pdf_bytes,
+    bucket="pdfs-productos"
+):
+    if not pdf_bytes:
+        raise ValueError("El PDF está vacío.")
+
+    nombre = str(nombre_archivo).strip()
+
+    if not nombre:
+        raise ValueError("El PDF no tiene nombre.")
+
+    url, key = _obtener_configuracion()
+
+    nombre_codificado = quote(nombre, safe="")
+    endpoint = (
+        f"{url}/storage/v1/object/"
+        f"{bucket}/{nombre_codificado}"
+    )
+
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/pdf",
+        "x-upsert": "true",
+    }
+
+    respuesta = requests.post(
+        endpoint,
+        headers=headers,
+        data=pdf_bytes,
+        timeout=120,
+    )
+
+    _verificar_respuesta(
+        respuesta,
+        "subir el PDF a Supabase Storage"
+    )
+
+    return (
+        f"{url}/storage/v1/object/public/"
+        f"{bucket}/{nombre_codificado}"
+    )
+
 
 
 # -------------------------------------------------------------------

@@ -122,6 +122,7 @@ def extraer_usos_pdf(path):
 
             indices = indices_tabla_uso(filas[encabezado_indice])
             cultivo_actual = ""
+            dosis_actual = ""
             observacion_actual = ""
 
             for fila in filas[encabezado_indice + 1:]:
@@ -134,6 +135,11 @@ def extraer_usos_pdf(path):
                     cultivo_actual = cultivo
                 else:
                     cultivo = cultivo_actual
+
+                if dosis and re.search(r"\d", dosis):
+                    dosis_actual = dosis
+                else:
+                    dosis = dosis_actual
 
                 if observaciones:
                     observacion_actual = observaciones
@@ -626,3 +632,257 @@ def analizar_texto(texto, nombre_archivo=""):
         "toxicidad_abejas": detectar_toxicidad_abejas(texto),
         "texto": texto
     }
+
+
+# ==============================================================
+# EXTRACCIÓN MEJORADA DE DATOS DE ETIQUETA
+# ==============================================================
+
+_detectar_ingrediente_anterior = detectar_ingrediente
+_detectar_grupo_anterior = detectar_grupo
+_detectar_tipo_anterior = detectar_tipo
+_detectar_reingreso_anterior = detectar_reingreso
+_detectar_compatibilidad_anterior = detectar_compatibilidad
+_detectar_incompatibilidad_anterior = detectar_incompatibilidad
+
+
+def _limpiar_texto_extraido(valor):
+    if valor is None:
+        return ""
+
+    valor = str(valor)
+    valor = valor.replace("\r", " ")
+    valor = re.sub(r"\s+", " ", valor)
+    return valor.strip(" \n\t:;.-")
+
+
+def _unicos_en_orden(valores):
+    resultado = []
+    vistos = set()
+
+    for valor in valores:
+        valor_limpio = _limpiar_texto_extraido(valor)
+
+        if not valor_limpio:
+            continue
+
+        clave = valor_limpio.casefold()
+
+        if clave not in vistos:
+            vistos.add(clave)
+            resultado.append(valor_limpio)
+
+    return resultado
+
+
+def detectar_ingrediente(texto):
+    bloque = re.search(
+        r"COMPOSICI[ÓO]N\s*:\s*(.+?)"
+        r"(?=\bCoformulantes\b|\bAutorizaci[óo]n\b)",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    ingredientes = []
+
+    if bloque:
+        contenido = bloque.group(1)
+
+        patron = re.compile(
+            r"([A-ZÁÉÍÓÚÜÑ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ"
+            r"\s\-]+?)"
+            r"[*\"']*\.{2,}\s*"
+            r"([0-9]+(?:[.,][0-9]+)?\s*%\s*p/v"
+            r"(?:\s*\([^)]*\))?)",
+            flags=re.IGNORECASE
+        )
+
+        for nombre, concentracion in patron.findall(contenido):
+            nombre = _limpiar_texto_extraido(nombre)
+            concentracion = _limpiar_texto_extraido(concentracion)
+
+            if nombre and concentracion:
+                ingredientes.append(
+                    f"{nombre} {concentracion}"
+                )
+
+    ingredientes = _unicos_en_orden(ingredientes)
+
+    if ingredientes:
+        return "; ".join(ingredientes)
+
+    return _detectar_ingrediente_anterior(texto)
+
+
+def detectar_grupo(texto):
+    coincidencias = re.findall(
+        r"pertenece\s+al\s+grupo\s+qu[íi]mico\s+"
+        r"de\s+los?\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ\-]+)",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    grupos = _unicos_en_orden(coincidencias)
+
+    if grupos:
+        return "; ".join(grupos)
+
+    bloque = re.search(
+        r"Grupo\s+Qu[íi]mico\s*:\s*(.+?)(?=\n[A-ZÁÉÍÓÚÑ]{3,}|$)",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    if bloque:
+        valor = _limpiar_texto_extraido(bloque.group(1))
+
+        if valor:
+            return valor
+
+    return _detectar_grupo_anterior(texto)
+
+
+def detectar_tipo(texto, grupo="", ingrediente=""):
+    tipos_posibles = (
+        "FUNGICIDA|INSECTICIDA|HERBICIDA|ACARICIDA|"
+        "NEMATICIDA|BACTERICIDA|MOLUSQUICIDA|"
+        "REGULADOR DE CRECIMIENTO"
+    )
+
+    encabezado = re.search(
+        rf"(?im)^\s*((?:{tipos_posibles})"
+        rf"(?:\s*[-/]\s*(?:{tipos_posibles}))*)\s*$",
+        texto
+    )
+
+    if encabezado:
+        valor = encabezado.group(1)
+        partes = re.split(r"\s*[-/]\s*", valor)
+        partes = [
+            parte.strip().title()
+            for parte in partes
+            if parte.strip()
+        ]
+
+        return " - ".join(partes)
+
+    descripcion = re.search(
+        r"\bes\s+un(?:a)?\s+"
+        r"((?:fungicida|insecticida|herbicida|acaricida|"
+        r"nematicida|bactericida)"
+        r"(?:\s*[- ]\s*(?:fungicida|insecticida|herbicida|"
+        r"acaricida|nematicida|bactericida))*)",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if descripcion:
+        valor = descripcion.group(1)
+        palabras = re.findall(
+            r"fungicida|insecticida|herbicida|acaricida|"
+            r"nematicida|bactericida",
+            valor,
+            flags=re.IGNORECASE
+        )
+
+        palabras = _unicos_en_orden(
+            palabra.title() for palabra in palabras
+        )
+
+        if palabras:
+            return " - ".join(palabras)
+
+    return _detectar_tipo_anterior(
+        texto,
+        grupo,
+        ingrediente
+    )
+
+
+def detectar_reingreso(texto):
+    coincidencia = re.search(
+        r"Tiempo\s+de\s+reingreso"
+        r"(?:\s+al\s+[áa]rea\s+tratada)?\s*:\s*"
+        r"(.+?)"
+        r"(?=\s*Carencia\s*:|\s*Fitotoxicidad\s*:|$)",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    if coincidencia:
+        valor = _limpiar_texto_extraido(
+            coincidencia.group(1)
+        )
+
+        if valor:
+            return valor
+
+    return _detectar_reingreso_anterior(texto)
+
+
+def detectar_compatibilidad(texto):
+    coincidencia = re.search(
+        r"(?<!In)Compatibilidad\s*:\s*(.+?)"
+        r"(?=\s*Incompatibilidad\s*:|"
+        r"\s*Fitotoxicidad\s*:|"
+        r"\s*Nota\s+del\s+Fabricante|$)",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    if coincidencia:
+        valor = _limpiar_texto_extraido(
+            coincidencia.group(1)
+        )
+
+        if valor:
+            return valor
+
+    valor_anterior = _limpiar_texto_extraido(
+        _detectar_compatibilidad_anterior(texto)
+    )
+
+    frases_incompletas = {
+        "compatible con",
+        "compatibilidad",
+        "compatible"
+    }
+
+    if valor_anterior.casefold() in frases_incompletas:
+        return ""
+
+    return valor_anterior
+
+
+def detectar_incompatibilidad(texto):
+    coincidencia = re.search(
+        r"Incompatibilidad\s*:\s*(.+?)"
+        r"(?=\s*Compatibilidad\s*:|"
+        r"\s*Fitotoxicidad\s*:|"
+        r"\s*Nota\s+del\s+Fabricante|$)",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    if coincidencia:
+        valor = _limpiar_texto_extraido(
+            coincidencia.group(1)
+        )
+
+        if valor:
+            return valor
+
+    valor_anterior = _limpiar_texto_extraido(
+        _detectar_incompatibilidad_anterior(texto)
+    )
+
+    frases_incompletas = {
+        "incompatible con",
+        "incompatibilidad",
+        "incompatible"
+    }
+
+    if valor_anterior.casefold() in frases_incompletas:
+        return ""
+
+    return valor_anterior

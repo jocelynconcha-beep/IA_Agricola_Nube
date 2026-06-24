@@ -30,13 +30,22 @@ import base64
 import textwrap
 import html
 import re
+import tempfile
 import pandas as pd
 from io import BytesIO
 from docx import Document
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
-from extractor_pdf import extraer_texto_pdf, analizar_texto
-from database import crear_tablas, guardar_producto, obtener_productos, eliminar_producto, eliminar_duplicados
+from extractor_pdf import extraer_texto_pdf, extraer_usos_pdf, analizar_texto
+from database import (
+    crear_tablas,
+    guardar_producto,
+    guardar_usos_producto,
+    subir_pdf_storage,
+    obtener_productos,
+    eliminar_producto,
+    eliminar_duplicados,
+)
 
 crear_tablas()
 
@@ -4053,10 +4062,10 @@ def compatibilidad_resultado_modo_terreno(productos_labels, resultados):
 def botones_finales_modo_terreno():
     html_botones = """
     <div class="modo-terreno-action-grid">
-        <div class="modo-terreno-action-card pdf">
+        <a class="modo-terreno-action-card pdf" href="?accion_modo_terreno=cargar_pdf" target="_self">
             <span class="modo-terreno-action-icon pdf"></span>
             <span>Cargar PDF</span>
-        </div>
+        </a>
         <a class="modo-terreno-action-card campo" href="?accion_modo_terreno=experiencia" target="_self">
             <span class="modo-terreno-action-icon campo"></span>
             <span>Experiencia de campo</span>
@@ -4070,6 +4079,385 @@ def botones_finales_modo_terreno():
 
     st.html(textwrap.dedent(html_botones))
 
+
+
+
+def limpiar_nombre_pdf_subida(nombre):
+    nombre = os.path.basename(str(nombre))
+    nombre = re.sub(r"[^A-Za-z0-9._-]+", "_", nombre)
+    nombre = re.sub(r"_+", "_", nombre)
+    return nombre.strip("._") or "etiqueta.pdf"
+
+
+def formulario_cargar_pdf_modo_terreno():
+    st.markdown("### Cargar una etiqueta PDF")
+    st.caption(
+        "El archivo quedará guardado permanentemente en Supabase."
+    )
+
+    archivo = st.file_uploader(
+        "Selecciona una etiqueta en formato PDF",
+        type=["pdf"],
+        accept_multiple_files=False,
+        key="modo_terreno_archivo_pdf"
+    )
+
+    if archivo is None:
+        return
+
+    pdf_bytes = archivo.getvalue()
+    nombre_original = archivo.name
+    nombre_storage = limpiar_nombre_pdf_subida(nombre_original)
+
+    if not nombre_storage.lower().endswith(".pdf"):
+        nombre_storage += ".pdf"
+
+    ruta_temporal = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            suffix=".pdf",
+            delete=False
+        ) as temporal:
+            temporal.write(pdf_bytes)
+            ruta_temporal = temporal.name
+
+        with st.spinner("Analizando la etiqueta..."):
+            texto = extraer_texto_pdf(ruta_temporal)
+            resultado = analizar_texto(
+                texto,
+                nombre_original
+            )
+            usos = extraer_usos_pdf(ruta_temporal)
+
+            if usos:
+                def unicos_usos(clave):
+                    valores = []
+                    vistos = set()
+
+                    for uso in usos:
+                        valor = str(
+                            uso.get(clave, "")
+                        ).strip()
+
+                        if not valor:
+                            continue
+
+                        identificador = valor.casefold()
+
+                        if identificador not in vistos:
+                            vistos.add(identificador)
+                            valores.append(valor)
+
+                    return valores
+
+                cultivos_tabla = unicos_usos("cultivo")
+                problemas_tabla = unicos_usos("problema")
+                dosis_tabla = unicos_usos("dosis")
+
+                palabras_insectos = [
+                    "mosca",
+                    "trips",
+                    "pulgón",
+                    "pulgon",
+                    "chanchito",
+                    "polilla",
+                    "ácaro",
+                    "acaro",
+                    "conchuela",
+                    "gusano",
+                    "larva",
+                    "insecto",
+                    "cuncunilla",
+                    "copitarsia",
+                    "drosophila",
+                    "pseudococcus",
+                    "frankliniella",
+                    "nasonovia"
+                ]
+
+                insectos_tabla = []
+                enfermedades_tabla = []
+
+                for problema in problemas_tabla:
+                    problema_minuscula = (
+                        problema.casefold()
+                    )
+
+                    es_insecto = any(
+                        palabra in problema_minuscula
+                        for palabra in palabras_insectos
+                    )
+
+                    if es_insecto:
+                        insectos_tabla.append(problema)
+                    else:
+                        enfermedades_tabla.append(
+                            problema
+                        )
+
+                if cultivos_tabla:
+                    resultado["cultivos"] = ", ".join(
+                        cultivos_tabla
+                    )
+
+                if dosis_tabla:
+                    resultado["dosis"] = ", ".join(
+                        dosis_tabla
+                    )
+
+                if insectos_tabla:
+                    resultado["insectos"] = ", ".join(
+                        insectos_tabla
+                    )
+
+                if enfermedades_tabla:
+                    resultado["enfermedades"] = ", ".join(
+                        enfermedades_tabla
+                    )
+
+    except Exception as error:
+        st.error(f"No fue posible analizar el PDF: {error}")
+        return
+
+    finally:
+        if ruta_temporal and os.path.exists(ruta_temporal):
+            os.remove(ruta_temporal)
+
+    st.success(
+        f"PDF analizado. Se encontraron {len(usos)} usos o dosis."
+    )
+
+    with st.expander("Ver PDF antes de guardar"):
+        mostrar_pdf_bytes(pdf_bytes, alto=550)
+
+    st.download_button(
+        "Descargar PDF seleccionado",
+        data=pdf_bytes,
+        file_name=nombre_original,
+        mime="application/pdf",
+        key="descargar_pdf_nuevo"
+    )
+
+    with st.form("formulario_guardar_pdf_supabase"):
+        st.markdown("#### Revisa y corrige los datos")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            nombre = st.text_input(
+                "Producto",
+                value=resultado.get("producto", "")
+            )
+
+            ingrediente = st.text_area(
+                "Ingrediente activo",
+                value=resultado.get("ingrediente", ""),
+                height=100
+            )
+
+            grupo = st.text_input(
+                "Grupo IRAC / FRAC / HRAC",
+                value=resultado.get("grupo", "")
+            )
+
+            tipo = st.text_input(
+                "Tipo de producto",
+                value=resultado.get("tipo", "")
+            )
+
+            cultivos = st.text_area(
+                "Cultivos",
+                value=resultado.get("cultivos", ""),
+                height=120
+            )
+
+            dosis = st.text_area(
+                "Dosis general",
+                value=resultado.get("dosis", ""),
+                height=100
+            )
+
+        with col2:
+            enfermedades = st.text_area(
+                "Enfermedades",
+                value=resultado.get("enfermedades", ""),
+                height=100
+            )
+
+            insectos = st.text_area(
+                "Insectos o plagas",
+                value=resultado.get("insectos", ""),
+                height=100
+            )
+
+            reingreso = st.text_area(
+                "Reingreso",
+                value=resultado.get("reingreso", ""),
+                height=80
+            )
+
+            carencia = st.text_area(
+                "Carencia",
+                value=resultado.get("carencia", ""),
+                height=80
+            )
+
+            toxicidad_abejas = st.text_area(
+                "Toxicidad para abejas",
+                value=resultado.get(
+                    "toxicidad_abejas",
+                    ""
+                ),
+                height=90
+            )
+
+        compatibilidad = st.text_area(
+            "Compatibilidad",
+            value=resultado.get("compatibilidad", ""),
+            height=90
+        )
+
+        incompatibilidad = st.text_area(
+            "Incompatibilidad",
+            value=resultado.get("incompatibilidad", ""),
+            height=90
+        )
+
+        fitotoxicidad = st.text_area(
+            "Fitotoxicidad",
+            value=resultado.get("fitotoxicidad", ""),
+            height=90
+        )
+
+        if usos:
+            st.markdown("#### Usos y dosis detectados")
+
+            df_usos = pd.DataFrame(usos)
+
+            columnas_usos = [
+                "cultivo",
+                "problema",
+                "dosis",
+                "observaciones",
+                "pagina"
+            ]
+
+            for columna in columnas_usos:
+                if columna not in df_usos.columns:
+                    df_usos[columna] = ""
+
+            df_usos_editado = st.data_editor(
+                df_usos[columnas_usos],
+                use_container_width=True,
+                num_rows="dynamic",
+                hide_index=True,
+                key="editor_usos_pdf"
+            )
+        else:
+            st.warning(
+                "No se encontraron tablas de dosis automáticamente. "
+                "El producto igualmente se puede guardar."
+            )
+            df_usos_editado = pd.DataFrame()
+
+        confirmar = st.checkbox(
+            "Confirmo que revisé los datos de la etiqueta."
+        )
+
+        guardar = st.form_submit_button(
+            "Guardar PDF y producto",
+            use_container_width=True,
+            type="primary"
+        )
+
+    if not guardar:
+        return
+
+    if not confirmar:
+        st.warning(
+            "Debes confirmar que revisaste los datos."
+        )
+        return
+
+    if not str(nombre).strip():
+        st.error("El campo Producto es obligatorio.")
+        return
+
+    try:
+        with st.spinner(
+            "Subiendo el PDF y guardando los datos..."
+        ):
+            url_pdf = subir_pdf_storage(
+                nombre_storage,
+                pdf_bytes
+            )
+
+            producto_id = guardar_producto(
+                nombre=nombre,
+                ingrediente=ingrediente,
+                grupo=grupo,
+                tipo=tipo,
+                cultivos=cultivos,
+                enfermedades=enfermedades,
+                insectos=insectos,
+                dosis=dosis,
+                compatibilidad=compatibilidad,
+                incompatibilidad=incompatibilidad,
+                fitotoxicidad=fitotoxicidad,
+                reingreso=reingreso,
+                carencia=carencia,
+                toxicidad_abejas=toxicidad_abejas,
+                pdf=url_pdf
+            )
+
+            usos_guardar = []
+
+            if not df_usos_editado.empty:
+                for registro in df_usos_editado.to_dict(
+                    orient="records"
+                ):
+                    usos_guardar.append({
+                        "cultivo": registro.get(
+                            "cultivo",
+                            ""
+                        ),
+                        "problema": registro.get(
+                            "problema",
+                            ""
+                        ),
+                        "dosis": registro.get(
+                            "dosis",
+                            ""
+                        ),
+                        "observaciones": registro.get(
+                            "observaciones",
+                            ""
+                        ),
+                        "pagina": registro.get(
+                            "pagina"
+                        ),
+                    })
+
+            guardar_usos_producto(
+                producto_id,
+                url_pdf,
+                usos_guardar
+            )
+
+        st.success(
+            f"{nombre} fue guardado correctamente."
+        )
+
+        st.session_state[
+            "modo_terreno_busqueda_ejecutada"
+        ] = False
+
+    except Exception as error:
+        st.error(
+            "No fue posible guardar el producto: "
+            f"{error}"
+        )
 
 
 def formulario_experiencia_campo_modo_terreno(df_productos):
@@ -4771,7 +5159,10 @@ with tab_modo_terreno:
 
             accion_modo_terreno = st.query_params.get("accion_modo_terreno", "")
 
-            if accion_modo_terreno == "experiencia":
+            if accion_modo_terreno == "cargar_pdf":
+                formulario_cargar_pdf_modo_terreno()
+
+            elif accion_modo_terreno == "experiencia":
                 formulario_experiencia_campo_modo_terreno(df_terreno)
 
 
