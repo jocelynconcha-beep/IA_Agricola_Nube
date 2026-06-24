@@ -1907,6 +1907,53 @@ st.markdown(
 )
 
 
+
+# Reducir espacio debajo de las pestañas en teléfono
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        div[data-testid="stTabs"] {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+        }
+
+        div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        div[data-testid="stTabs"] [data-baseweb="tab-panel"] {
+            padding-top: 0.35rem !important;
+        }
+
+        div[data-testid="stTabs"]
+        [data-baseweb="tab-panel"]
+        > div {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-app-shell-marker
+        ) {
+            margin-top: 0 !important;
+            padding-top: 4px !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-app-shell-marker
+        ) {
+            margin-top: 0 !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
