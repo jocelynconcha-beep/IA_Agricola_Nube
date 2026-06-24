@@ -1499,6 +1499,230 @@ def aplicar_diseno_responsivo():
 
 
 
+
+# Ajustes finales para teléfonos
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        html,
+        body,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stAppViewContainer"] > .main {
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+        }
+
+        .block-container {
+            max-width: 100% !important;
+            padding: 0.75rem 0.65rem 6rem 0.65rem !important;
+        }
+
+        /* Ocultar elementos superiores que quitan espacio */
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"],
+        .stDeployButton {
+            display: none !important;
+        }
+
+        header[data-testid="stHeader"] {
+            height: 0 !important;
+            min-height: 0 !important;
+        }
+
+        /* Tarjetas de Cultivo, Plaga, Enfermedad y Maleza */
+        .modo-terreno-selector-card {
+            min-height: auto !important;
+            padding: 12px 12px 10px 12px !important;
+            margin: 0 0 10px 0 !important;
+            border-radius: 17px !important;
+        }
+
+        .modo-terreno-selector-icon {
+            width: 52px !important;
+            height: 52px !important;
+            min-width: 52px !important;
+        }
+
+        .modo-terreno-selector-emoji {
+            font-size: 1.75rem !important;
+        }
+
+        .modo-terreno-selector-title {
+            font-size: 1.05rem !important;
+            line-height: 1.15 !important;
+        }
+
+        .modo-terreno-selector-value {
+            font-size: 0.82rem !important;
+            line-height: 1.3 !important;
+        }
+
+        /* Selectores */
+        div[data-baseweb="select"] > div {
+            min-height: 48px !important;
+            border-radius: 12px !important;
+        }
+
+        div[data-baseweb="select"] span {
+            font-size: 0.95rem !important;
+        }
+
+        /* Encabezado de productos */
+        .modo-terreno-products-head {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+            gap: 5px !important;
+            padding: 4px 2px 10px 2px !important;
+        }
+
+        .modo-terreno-products-title {
+            font-size: 1rem !important;
+            line-height: 1.35 !important;
+        }
+
+        .modo-terreno-products-hint {
+            font-size: 0.8rem !important;
+            line-height: 1.35 !important;
+        }
+
+        /* Contenedor de lista */
+        .modo-terreno-lista,
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-lista-botones-marker
+        ) {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            box-sizing: border-box !important;
+            border-radius: 16px !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-lista-botones-marker
+        ) > div {
+            padding: 10px !important;
+        }
+
+        /* Filas de productos */
+        .modo-terreno-product-row-link,
+        .modo-terreno-product-row-pretty,
+        .modo-terreno-product-row-html {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+        }
+
+        .modo-terreno-product-row-link {
+            grid-template-columns: 48px minmax(0, 1fr) !important;
+            gap: 10px !important;
+            min-height: 72px !important;
+            padding: 10px !important;
+            border-radius: 15px !important;
+        }
+
+        .modo-terreno-product-row-pretty {
+            grid-template-columns: 48px minmax(0, 1fr) !important;
+            gap: 10px !important;
+            min-height: 70px !important;
+            padding: 10px 6px !important;
+        }
+
+        .modo-terreno-product-row-html {
+            grid-template-columns: 42px minmax(0, 1fr) !important;
+            gap: 9px !important;
+        }
+
+        .modo-terreno-product-name-box {
+            min-width: 0 !important;
+            max-width: 100% !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+            font-size: 0.95rem !important;
+            line-height: 1.2 !important;
+            margin-bottom: 4px !important;
+        }
+
+        div.stButton > button {
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+
+        /* Compatibilidad */
+        .modo-terreno-compat-wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 14px 12px !important;
+            border-radius: 18px !important;
+        }
+
+        .modo-terreno-compat-title {
+            font-size: 1.25rem !important;
+            margin-bottom: 10px !important;
+        }
+
+        .modo-terreno-compat-slots {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+        }
+
+        .modo-terreno-compat-slot {
+            min-width: 0 !important;
+            min-height: 58px !important;
+            padding: 10px !important;
+            font-size: 0.95rem !important;
+            line-height: 1.25 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+
+        .modo-terreno-compat-result {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 14px !important;
+            font-size: 0.92rem !important;
+            line-height: 1.45 !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        /* Botones inferiores */
+        .modo-terreno-action-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+            margin-bottom: 70px !important;
+        }
+
+        .modo-terreno-action-card {
+            min-height: 64px !important;
+            border-radius: 16px !important;
+            font-size: 1rem !important;
+        }
+
+        /* Evitar que cualquier componente ensanche la pantalla */
+        [data-testid="stHorizontalBlock"],
+        [data-testid="column"],
+        [data-testid="stVerticalBlock"],
+        [data-testid="stElementContainer"] {
+            min-width: 0 !important;
+            max-width: 100% !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
@@ -3900,28 +4124,32 @@ with tab_modo_terreno:
                     "Seleccionar producto"
                 ] + list(opciones_compat_terreno.keys())
 
-                col_compat_1, col_compat_2 = st.columns(2)
+                fila_compat_1, fila_compat_2 = st.columns(2)
 
-                with col_compat_1:
+                with fila_compat_1:
                     compat_producto_1 = st.selectbox(
                         "Producto 1",
                         opciones_selector_compat,
                         key="compat_producto_1"
                     )
 
-                    compat_producto_3 = st.selectbox(
-                        "Producto 3 (opcional)",
-                        opciones_selector_compat,
-                        key="compat_producto_3"
-                    )
-
-                with col_compat_2:
+                with fila_compat_2:
                     compat_producto_2 = st.selectbox(
                         "Producto 2",
                         opciones_selector_compat,
                         key="compat_producto_2"
                     )
 
+                fila_compat_3, fila_compat_4 = st.columns(2)
+
+                with fila_compat_3:
+                    compat_producto_3 = st.selectbox(
+                        "Producto 3 (opcional)",
+                        opciones_selector_compat,
+                        key="compat_producto_3"
+                    )
+
+                with fila_compat_4:
                     compat_producto_4 = st.selectbox(
                         "Producto 4 (opcional)",
                         opciones_selector_compat,
