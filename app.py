@@ -40,6 +40,7 @@ from extractor_pdf import extraer_texto_pdf, extraer_usos_pdf, analizar_texto
 from database import (
     crear_tablas,
     guardar_producto,
+    actualizar_compatibilidad_producto,
     guardar_usos_producto,
     subir_pdf_storage,
     obtener_productos,
@@ -2611,24 +2612,12 @@ def guardar_compatibilidad_manual(
     incompatibilidad,
     fitotoxicidad
 ):
-    conn = sqlite3.connect("agro.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE productos
-        SET compatibilidad = ?,
-            incompatibilidad = ?,
-            fitotoxicidad = ?
-        WHERE id = ?
-    """, (
-        compatibilidad,
-        incompatibilidad,
-        fitotoxicidad,
-        id_producto
-    ))
-
-    conn.commit()
-    conn.close()
+    actualizar_compatibilidad_producto(
+        id_producto=id_producto,
+        compatibilidad=compatibilidad,
+        incompatibilidad=incompatibilidad,
+        fitotoxicidad=fitotoxicidad
+    )
 
 
 def convertir_excel(df):
@@ -4070,10 +4059,10 @@ def botones_finales_modo_terreno():
             <span class="modo-terreno-action-icon campo"></span>
             <span>Experiencia de campo</span>
         </a>
-        <div class="modo-terreno-action-card db">
+        <a class="modo-terreno-action-card db" href="?accion_modo_terreno=base_datos" target="_self">
             <span class="modo-terreno-action-icon db"></span>
             <span>Base de datos</span>
-        </div>
+        </a>
     </div>
     """
 
@@ -4767,10 +4756,24 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-tab_modo_terreno, tab_base = st.tabs([
-    "Modo terreno",
+accion_inicial = st.query_params.get(
+    "accion_modo_terreno",
+    ""
+)
+
+pestana_inicial = (
     "Base de datos"
-])
+    if accion_inicial == "base_datos"
+    else "Modo terreno"
+)
+
+tab_modo_terreno, tab_base = st.tabs(
+    [
+        "Modo terreno",
+        "Base de datos"
+    ],
+    default=pestana_inicial
+)
 
 
 with tab_modo_terreno:
@@ -5260,6 +5263,17 @@ if False:
 
 
 with tab_base:
+    if st.query_params.get(
+        "accion_modo_terreno",
+        ""
+    ) == "base_datos":
+        if st.button(
+            "← Volver a Modo terreno",
+            key="volver_desde_base_datos"
+        ):
+            st.query_params.clear()
+            st.rerun()
+
     df = obtener_productos()
 
     if "tipo" not in df.columns:

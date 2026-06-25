@@ -220,6 +220,36 @@ def guardar_producto(
     return int(filas[0]["id"])
 
 
+
+def actualizar_compatibilidad_producto(
+    id_producto,
+    compatibilidad,
+    incompatibilidad,
+    fitotoxicidad
+):
+    datos = {
+        "compatibilidad": _texto_o_none(compatibilidad),
+        "incompatibilidad": _texto_o_none(incompatibilidad),
+        "fitotoxicidad": _texto_o_none(fitotoxicidad),
+    }
+
+    respuesta = requests.patch(
+        _endpoint("productos"),
+        headers=_headers("return=minimal"),
+        params={
+            "id": f"eq.{int(id_producto)}",
+        },
+        json=datos,
+        timeout=60,
+    )
+
+    _verificar_respuesta(
+        respuesta,
+        "actualizar la compatibilidad del producto"
+    )
+
+
+
 def obtener_productos():
     respuesta = requests.get(
         _endpoint("productos"),
