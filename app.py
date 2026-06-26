@@ -43,6 +43,7 @@ from database import (
     actualizar_compatibilidad_producto,
     guardar_usos_producto,
     subir_pdf_storage,
+    eliminar_pdf_storage,
     obtener_productos,
     eliminar_producto,
     eliminar_duplicados,
@@ -3115,18 +3116,83 @@ def base_datos_mockup_header():
     st.html(textwrap.dedent(html_base))
 
 
-def tabla_base_datos_mockup(df, limite=9):
+
+# Ajuste de ancho de columnas en Base de datos
+st.markdown(
+    """
+    <style>
+    .base-table-head,
+    .base-table-row {
+        grid-template-columns:
+            minmax(220px, 1.45fr)
+            minmax(140px, 0.82fr)
+            minmax(105px, 0.58fr)
+            minmax(220px, 1.15fr)
+            !important;
+    }
+
+    .base-table-head .base-table-cell:nth-child(2),
+    .base-table-row .base-table-cell:nth-child(2),
+    .base-table-head .base-table-cell:nth-child(3),
+    .base-table-row .base-table-cell:nth-child(3) {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    @media screen and (max-width: 700px) {
+        .base-table-head,
+        .base-table-row {
+            grid-template-columns:
+                minmax(180px, 1.35fr)
+                minmax(125px, 0.78fr)
+                minmax(95px, 0.55fr)
+                minmax(190px, 1.1fr)
+                !important;
+            min-width: 650px;
+        }
+
+        .base-table-scroll-body {
+            overflow-x: auto !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+def tabla_base_datos_mockup(df, filas_visibles=7):
     if df.empty:
         return
 
     filas_html = []
 
-    for _, fila in df.head(limite).iterrows():
-        nombre = escapar_html(fila.get("nombre", ""))
-        ingrediente = escapar_html(valor_o_sin_info(fila.get("ingrediente", "")))
-        grupo = escapar_html(valor_o_sin_info(fila.get("grupo", "")))
-        carencia = escapar_html(valor_o_sin_info(fila.get("carencia", "")))
-        clase_tipo = clase_tipo_producto(fila.get("tipo", ""))
+    for _, fila in df.iterrows():
+        nombre = escapar_html(
+            fila.get("nombre", "")
+        )
+
+        ingrediente = escapar_html(
+            valor_o_sin_info(
+                fila.get("ingrediente", "")
+            )
+        )
+
+        grupo = escapar_html(
+            valor_o_sin_info(
+                fila.get("grupo", "")
+            )
+        )
+
+        tipo = escapar_html(
+            valor_o_sin_info(
+                fila.get("tipo", "")
+            )
+        )
+
+        clase_tipo = clase_tipo_producto(
+            fila.get("tipo", "")
+        )
 
         filas_html.append(f"""
         <div class="base-table-row">
@@ -3136,25 +3202,105 @@ def tabla_base_datos_mockup(df, limite=9):
             </div>
             <div class="base-table-cell">{ingrediente}</div>
             <div class="base-table-cell">{grupo}</div>
-            <div class="base-table-cell">{carencia}</div>
+            <div class="base-table-cell">
+                <span class="base-type-pill {clase_tipo}">
+                    {tipo}
+                </span>
+            </div>
         </div>
         """)
 
-    html_tabla = f"""
+    cantidad = len(df)
+
+    html_tabla = """
+    <style>
+        .base-table-card-scroll {
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid #dbe3ec;
+            background: #ffffff;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        .base-table-scroll-body {
+            max-height: 357px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #94a3b8 #eef3f7;
+        }
+
+        .base-table-scroll-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .base-table-scroll-body::-webkit-scrollbar-track {
+            background: #eef3f7;
+            border-radius: 10px;
+        }
+
+        .base-table-scroll-body::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+
+        .base-table-scroll-body::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .base-table-count {
+            padding: 6px 14px 8px 14px;
+            color: #64748b;
+            font-size: 0.76rem;
+            text-align: right;
+            border-top: 1px solid #edf1f5;
+            background: #fafcfd;
+        }
+
+        @media screen and (max-width: 700px) {
+            .base-table-scroll-body {
+                max-height: 350px;
+                overflow-x: auto;
+            }
+
+            .base-table-card-scroll {
+                border-radius: 14px;
+            }
+        }
+    </style>
+
     <div class="base-app-shell">
-        <div class="base-table-card">
+        <div class="base-table-card-scroll">
             <div class="base-table-head">
                 <div class="base-table-cell">Producto</div>
                 <div class="base-table-cell">Ingrediente activo</div>
                 <div class="base-table-cell">Grupo</div>
-                <div class="base-table-cell">Carencia</div>
+                <div class="base-table-cell">Tipo</div>
             </div>
-            {''.join(filas_html)}
+
+            <div class="base-table-scroll-body">
+                __FILAS__
+            </div>
+
+            <div class="base-table-count">
+                __CANTIDAD__ producto(s) guardado(s)
+            </div>
         </div>
     </div>
     """
 
+    html_tabla = html_tabla.replace(
+        "__FILAS__",
+        "".join(filas_html)
+    )
+
+    html_tabla = html_tabla.replace(
+        "__CANTIDAD__",
+        str(cantidad)
+    )
+
     st.html(textwrap.dedent(html_tabla))
+
 
 
 def acciones_base_datos_mockup():
@@ -3392,8 +3538,14 @@ def bloque_ficha_modo_terreno(titulo, icono, valor, full=False):
     """
 
 
-def ficha_didactica_modo_terreno(fila, columna_malezas=None):
-    nombre_crudo = limpiar_valor(fila.get("nombre", ""))
+def ficha_didactica_modo_terreno(
+    fila,
+    columna_malezas=None
+):
+    nombre_crudo = limpiar_valor(
+        fila.get("nombre", "")
+    )
+
     nombre_visible = re.sub(
         r"\s+ETIQUETA\b.*$",
         "",
@@ -3404,80 +3556,229 @@ def ficha_didactica_modo_terreno(fila, columna_malezas=None):
     if nombre_visible == "":
         nombre_visible = nombre_crudo
 
+    def valor_ficha(clave, predeterminado="Sin información"):
+        valor = limpiar_valor(
+            fila.get(clave, "")
+        )
+
+        if valor == "" or valor.lower() == "nan":
+            return predeterminado
+
+        return valor
+
+    def resumir_texto(valor, maximo=150):
+        valor = limpiar_valor(valor)
+
+        if valor == "" or valor.lower() == "nan":
+            return "Sin información"
+
+        if len(valor) <= maximo:
+            return valor
+
+        corte = valor[:maximo].rsplit(" ", 1)[0]
+
+        if corte == "":
+            corte = valor[:maximo]
+
+        return corte.rstrip(" ,.;:") + "…"
+
     nombre = escapar_html(nombre_visible)
-    tipo = escapar_html(fila.get("tipo", ""))
-    tipo_texto = limpiar_valor(fila.get("tipo", ""))
-    pdf = escapar_html(fila.get("pdf", ""))
-    subtitulo = escapar_html(fila.get("tipo", ""))
-    advertencia = html.escape(badge_advertencia_producto(fila))
-    clase_abejas, texto_abejas = clase_toxicidad_abejas(
-        fila.get("toxicidad_abejas", "")
+    tipo_texto = valor_ficha("tipo")
+    tipo = escapar_html(tipo_texto)
+    subtitulo = tipo
+
+    grupo_crudo = valor_ficha("grupo")
+    ingrediente_crudo = valor_ficha("ingrediente")
+    problema_crudo = problema_controlado(
+        fila,
+        columna_malezas
     )
-    texto_abejas_header = texto_abejas
+    dosis_cruda = valor_ficha("dosis")
 
-    if clase_abejas == "alta":
-        texto_abejas_header = "Tóxico para abejas"
+    compatibilidad_cruda = valor_ficha(
+        "compatibilidad"
+    )
+    incompatibilidad_cruda = valor_ficha(
+        "incompatibilidad"
+    )
+    reingreso_crudo = valor_ficha(
+        "reingreso"
+    )
+    fitotoxicidad_cruda = valor_ficha(
+        "fitotoxicidad"
+    )
+    toxicidad_abejas_cruda = valor_ficha(
+        "toxicidad_abejas"
+    )
 
-    observaciones_base = limpiar_valor(fila.get("observaciones", ""))
+    grupo = escapar_html(
+        resumir_texto(grupo_crudo, 90)
+    )
+
+    ingrediente = escapar_html(
+        resumir_texto(ingrediente_crudo, 130)
+    )
+
+    problema = escapar_html(
+        resumir_texto(problema_crudo, 240)
+    )
+
+    dosis = escapar_html(
+        resumir_texto(dosis_cruda, 110)
+    )
+
+    reingreso_resumido = escapar_html(
+        resumir_texto(reingreso_crudo, 95)
+    )
+
+    compatibilidad = escapar_html(
+        compatibilidad_cruda
+    )
+
+    incompatibilidad = escapar_html(
+        incompatibilidad_cruda
+    )
+
+    reingreso = escapar_html(
+        reingreso_crudo
+    )
+
+    fitotoxicidad = escapar_html(
+        fitotoxicidad_cruda
+    )
+
+    observaciones_base = limpiar_valor(
+        fila.get("observaciones", "")
+    )
+
     observaciones_partes = []
 
-    if observaciones_base != "":
-        observaciones_partes.append(observaciones_base)
+    if observaciones_base:
+        observaciones_partes.append(
+            observaciones_base
+        )
 
     try:
         from database import obtener_experiencias_producto
 
-        producto_id_ficha = limpiar_valor(fila.get("id", ""))
+        producto_id = limpiar_valor(
+            fila.get("id", "")
+        )
 
-        if producto_id_ficha != "":
-            df_experiencias_ficha = obtener_experiencias_producto(int(producto_id_ficha))
+        if producto_id:
+            experiencias = (
+                obtener_experiencias_producto(
+                    int(producto_id)
+                )
+            )
 
-            if df_experiencias_ficha is not None and not df_experiencias_ficha.empty:
-                observaciones_partes.append("Experiencia de campo:")
+            if (
+                experiencias is not None
+                and not experiencias.empty
+            ):
+                for _, experiencia in experiencias.head(
+                    4
+                ).iterrows():
+                    partes = []
 
-                for _, exp in df_experiencias_ficha.head(4).iterrows():
-                    cultivo_exp = limpiar_valor(exp.get("cultivo", ""))
-                    problema_exp = limpiar_valor(exp.get("problema", ""))
-                    dosis_exp = limpiar_valor(exp.get("dosis_usada", ""))
-                    resultado_exp = limpiar_valor(exp.get("resultado_observado", ""))
-                    fecha_exp = limpiar_valor(exp.get("fecha", ""))
-                    comentario_exp = limpiar_valor(exp.get("comentario", ""))
+                    cultivo = limpiar_valor(
+                        experiencia.get(
+                            "cultivo",
+                            ""
+                        )
+                    )
 
-                    detalle = "• "
+                    problema_exp = limpiar_valor(
+                        experiencia.get(
+                            "problema",
+                            ""
+                        )
+                    )
 
-                    if cultivo_exp:
-                        detalle += f"{cultivo_exp}"
+                    dosis_exp = limpiar_valor(
+                        experiencia.get(
+                            "dosis_usada",
+                            ""
+                        )
+                    )
+
+                    resultado = limpiar_valor(
+                        experiencia.get(
+                            "resultado_observado",
+                            ""
+                        )
+                    )
+
+                    comentario = limpiar_valor(
+                        experiencia.get(
+                            "comentario",
+                            ""
+                        )
+                    )
+
+                    if cultivo:
+                        partes.append(cultivo)
+
                     if problema_exp:
-                        detalle += f" / {problema_exp}"
-                    if dosis_exp:
-                        detalle += f" / dosis: {dosis_exp}"
-                    if resultado_exp and resultado_exp != "Seleccionar":
-                        detalle += f" / resultado: {resultado_exp}"
-                    if fecha_exp:
-                        detalle += f" / fecha: {fecha_exp}"
-                    if comentario_exp:
-                        detalle += f" — {comentario_exp}"
+                        partes.append(problema_exp)
 
-                    observaciones_partes.append(detalle)
+                    if dosis_exp:
+                        partes.append(
+                            f"Dosis: {dosis_exp}"
+                        )
+
+                    if (
+                        resultado
+                        and resultado != "Seleccionar"
+                    ):
+                        partes.append(
+                            f"Resultado: {resultado}"
+                        )
+
+                    if comentario:
+                        partes.append(comentario)
+
+                    if partes:
+                        observaciones_partes.append(
+                            " • ".join(partes)
+                        )
+
     except Exception:
         pass
 
-    if not observaciones_partes:
-        observaciones = "Sin observaciones registradas"
+    if observaciones_partes:
+        observaciones_crudas = "\n".join(
+            observaciones_partes
+        )
     else:
-        observaciones = "\n".join(observaciones_partes)
+        observaciones_crudas = (
+            "Sin observaciones registradas"
+        )
 
-    producto_visual = imagen_producto_html(nombre_crudo)
-    grupo = escapar_html(fila.get("grupo", ""))
-    ingrediente = escapar_html(fila.get("ingrediente", ""))
-    problema = escapar_html(problema_controlado(fila, columna_malezas))
-    dosis = escapar_html(fila.get("dosis", ""))
-    compatibilidad = escapar_html(fila.get("compatibilidad", ""))
-    incompatibilidad = escapar_html(fila.get("incompatibilidad", ""))
-    reingreso = escapar_html(fila.get("reingreso", ""))
-    abejas = escapar_html(fila.get("toxicidad_abejas", ""))
-    fitotoxicidad = escapar_html(fila.get("fitotoxicidad", ""))
-    observaciones_html = escapar_html(observaciones).replace("\\n", "<br>")
+    observaciones_html = escapar_html(
+        observaciones_crudas
+    ).replace("\\n", "<br>")
+
+    producto_visual = imagen_producto_html(
+        nombre_crudo
+    )
+
+    advertencia = html.escape(
+        badge_advertencia_producto(fila)
+    )
+
+    clase_abejas, texto_abejas = (
+        clase_toxicidad_abejas(
+            toxicidad_abejas_cruda
+        )
+    )
+
+    texto_abejas_header = texto_abejas
+
+    if clase_abejas == "alta":
+        texto_abejas_header = (
+            "Tóxico para abejas"
+        )
 
     html_ficha = f"""
     <!doctype html>
@@ -3485,6 +3786,10 @@ def ficha_didactica_modo_terreno(fila, columna_malezas=None):
     <head>
         <meta charset="utf-8">
         <style>
+            * {{
+                box-sizing: border-box;
+            }}
+
             body {{
                 margin: 0;
                 font-family: Arial, sans-serif;
@@ -3492,460 +3797,375 @@ def ficha_didactica_modo_terreno(fila, columna_malezas=None):
                 color: #111827;
             }}
 
-            .modo-terreno-ficha {{
-                box-sizing: border-box;
+            .ficha-compacta {{
                 border: 1px solid #d7e2dc;
-                border-radius: 24px;
-                padding: 12px 14px 12px 14px;
+                border-radius: 22px;
+                padding: 14px;
                 background: #ffffff;
                 box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
                 width: 100%;
-                position: relative;
-                overflow: hidden;
             }}
 
-            .modo-terreno-ficha-header {{
+            .ficha-encabezado {{
                 display: flex;
-                justify-content: space-between;
-                gap: 16px;
                 align-items: flex-start;
-                border-bottom: 1px solid #eaeef2;
-                padding: 0 2px 10px 2px;
-                margin-bottom: 0;
+                justify-content: space-between;
+                gap: 14px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid #e7edf1;
             }}
 
-            .modo-terreno-ficha-head-main {{
+            .ficha-producto {{
                 display: flex;
                 gap: 14px;
                 align-items: flex-start;
                 min-width: 0;
             }}
 
-            .modo-terreno-product-bottle {{
-                width: 62px;
-                height: 80px;
-                border-radius: 16px 16px 14px 14px;
-                background: linear-gradient(180deg, #e8f7ef 0%, #bfe7cf 100%);
-                border: 2px solid #8fd0ad;
-                position: relative;
-                flex: 0 0 auto;
-                box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.45);
-            }}
-
-            .modo-terreno-product-bottle::before {{
-                content: "";
-                position: absolute;
-                top: -10px;
-                left: 21px;
-                width: 18px;
-                height: 12px;
-                border-radius: 6px 6px 2px 2px;
-                background: #17663d;
-            }}
-
-            .modo-terreno-product-bottle::after {{
-                content: "";
-                position: absolute;
-                left: 11px;
-                right: 11px;
-                top: 26px;
-                height: 18px;
-                border-radius: 8px;
-                background: rgba(255, 255, 255, 0.82);
-                border: 1px solid rgba(23, 102, 61, 0.22);
-            }}
-
-            .modo-terreno-product-image {{
-                width: 72px;
-                height: 86px;
-                object-fit: contain;
-                flex: 0 0 auto;
-                display: block;
-            }}
-
-            .modo-terreno-type-ribbon {{
-                display: none;
-            }}
-
-            .modo-terreno-ficha-content {{
-                padding-right: 0;
-            }}
-
-            .modo-terreno-ficha-title {{
-                font-size: 1.65rem;
+            .ficha-titulo {{
+                font-size: 1.55rem;
                 font-weight: 900;
                 color: #0f172a;
-                margin: 0 0 3px 0;
-                overflow-wrap: anywhere;
                 line-height: 1.08;
+                overflow-wrap: anywhere;
             }}
 
-            .modo-terreno-ficha-subtitle {{
-                color: #57606a;
-                font-size: 0.86rem;
-                margin-bottom: 5px;
-            }}
-
-            .modo-terreno-pill {{
-                display: none;
-                padding: 5px 9px;
-                margin: 0 5px 6px 0;
-                border-radius: 999px;
-                background: #e8f7ef;
-                color: #17663d;
-                font-size: 0.78rem;
-                font-weight: 850;
-            }}
-
-            .modo-terreno-bee {{
-                display: none;
-                border-radius: 999px;
-                padding: 5px 9px;
-                font-size: 0.76rem;
-                font-weight: 850;
-                margin: 0 5px 6px 0;
-            }}
-
-            .modo-terreno-bee.alta {{
-                background: #ffe8e8;
-                color: #a61b1b;
-            }}
-
-            .modo-terreno-bee.media {{
-                background: #fff3cd;
-                color: #8a5a00;
-            }}
-
-            .modo-terreno-bee.baja {{
-                background: #e8f7ef;
-                color: #17663d;
-            }}
-
-            .modo-terreno-warning-badge {{
-                display: none;
-                border-radius: 999px;
-                padding: 5px 9px;
-                font-size: 0.76rem;
-                font-weight: 850;
-                margin: 0 5px 6px 0;
-                background: #ffe8e8;
-                color: #a61b1b;
-            }}
-
-            .modo-terreno-lista-meta {{
+            .ficha-subtitulo {{
+                margin-top: 4px;
                 color: #57606a;
                 font-size: 0.9rem;
-                overflow-wrap: anywhere;
-                min-width: 190px;
             }}
 
-            .modo-terreno-ficha-bee-top {{
+            .ficha-abejas {{
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
                 flex: 0 0 auto;
-                margin-top: 8px;
             }}
 
-            .modo-terreno-bee-icon {{
-                font-size: 1.5rem;
-                line-height: 1;
-            }}
-
-            .modo-terreno-bee-top-badge {{
-                border-radius: 8px;
-                padding: 9px 15px;
+            .ficha-abejas-badge {{
+                border-radius: 10px;
+                padding: 9px 13px;
                 background: #fff1d8;
-                color: #f05a1a;
-                font-size: 0.88rem;
+                color: #dc531a;
+                font-size: 0.82rem;
                 font-weight: 900;
                 text-transform: uppercase;
             }}
 
-            .modo-terreno-ficha-grid {{
+            .ficha-resumen {{
                 display: grid;
-                grid-template-columns: 30% 35% 35%;
-                gap: 0;
-                align-items: start;
-                border: 1px solid #e8edf2;
-                border-radius: 16px;
+                grid-template-columns:
+                    minmax(150px, 0.8fr)
+                    minmax(180px, 1fr)
+                    minmax(230px, 1.35fr)
+                    minmax(150px, 0.8fr);
+                border: 1px solid #e4eaf0;
+                border-radius: 15px;
                 overflow: hidden;
-                margin-top: 0;
+                margin-top: 12px;
             }}
 
-            .modo-terreno-ficha-section {{
-                box-sizing: border-box;
-                padding: 9px 14px;
-                background: #ffffff;
-                border: 0;
-                border-bottom: 0;
-                border-radius: 0;
-                min-height: 0;
-            }}
-
-            .modo-terreno-ficha-section:last-child {{
-                border-bottom: 0;
-            }}
-
-            .modo-terreno-ficha-section-title {{
-                display: flex;
-                align-items: flex-start;
-                gap: 8px;
-                color: #111827;
-                font-weight: 850;
-                margin-bottom: 5px;
-                font-size: 0.8rem;
-                line-height: 1.25;
-            }}
-
-            .modo-terreno-ficha-icon {{
-                width: 18px;
-                flex: 0 0 18px;
-                text-align: center;
-                font-weight: 950;
-                font-size: 1.05rem;
-                line-height: 1;
-            }}
-
-            .icon-teal {{ color: #1aa182; }}
-            .icon-blue {{ color: #176bd2; }}
-            .icon-green {{ color: #15935b; }}
-            .icon-red {{ color: #ff3b3b; }}
-
-            .modo-terreno-ficha-section-value {{
-                color: #111827;
-                overflow-wrap: anywhere;
-                line-height: 1.3;
-                font-size: 0.78rem;
-            }}
-
-            .modo-terreno-ficha-col {{
-                border-right: 1px solid #e1e8ee;
-                padding: 0;
+            .ficha-item {{
+                padding: 12px;
+                border-right: 1px solid #e4eaf0;
                 min-width: 0;
             }}
 
-            .modo-terreno-ficha-col:first-child {{
-                padding-left: 0;
-                display: grid;
-                gap: 0;
-            }}
-
-            .modo-terreno-ficha-col:nth-child(2) .modo-terreno-ficha-section {{
-                min-height: 0;
-            }}
-
-            .modo-terreno-ficha-col:last-child {{
+            .ficha-item:last-child {{
                 border-right: 0;
-                padding-right: 0;
             }}
 
-            .modo-terreno-right-grid {{
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0;
-                align-items: start;
+            .ficha-item-titulo {{
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-size: 0.82rem;
+                font-weight: 850;
+                color: #172033;
+                margin-bottom: 6px;
             }}
 
-            .modo-terreno-right-grid .modo-terreno-ficha-section {{
-                border-bottom: 1px solid #edf1f5;
-                border-left: 1px solid #edf1f5;
-                padding-left: 12px;
-                min-height: 82px;
+            .ficha-item-valor {{
+                font-size: 0.8rem;
+                color: #263449;
+                line-height: 1.35;
+                overflow-wrap: anywhere;
             }}
 
-            .modo-terreno-right-grid .modo-terreno-ficha-section:nth-child(3),
-            .modo-terreno-right-grid .modo-terreno-ficha-section:nth-child(4) {{
-                border-bottom: 0;
-            }}
-
-            .modo-terreno-observaciones {{
-                grid-column: 1 / -1;
-                border: 1px solid #f3d38c !important;
-                border-radius: 10px;
-                background: #fff8ea;
-                padding: 8px 10px !important;
-                box-shadow: none;
-                min-height: 52px !important;
-                margin: 10px 10px 0 10px;
-            }}
-
-            .modo-terreno-observaciones .modo-terreno-ficha-section-title {{
-                margin-bottom: 2px;
-            }}
-
-            .modo-terreno-dose-chip {{
+            .ficha-dose-chip {{
                 display: inline-block;
                 margin-top: 7px;
-                padding: 6px 9px;
+                padding: 5px 9px;
                 border-radius: 9px;
                 background: #e8f7ef;
                 color: #17663d;
                 font-weight: 800;
-                font-size: 0.78rem;
+                font-size: 0.74rem;
             }}
 
-            .modo-terreno-ficha-footer {{
+            .ficha-reingreso {{
                 margin-top: 10px;
-                border-radius: 15px;
-                background: #fff7e6;
-                border: 1px solid #ffd48a;
-                color: #7a4b00;
-                padding: 8px 12px;
+                border-radius: 12px;
+                border: 1px solid #dce9f9;
+                background: #f6faff;
+                padding: 9px 12px;
+                font-size: 0.8rem;
+                line-height: 1.35;
+            }}
+
+            .ficha-reingreso strong {{
+                color: #155fb0;
+                margin-right: 6px;
+            }}
+
+            .ficha-detalles {{
+                margin-top: 10px;
+                display: grid;
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }}
+
+            .ficha-detalles details {{
+                border: 1px solid #e1e7ed;
+                border-radius: 11px;
+                background: #fafcfd;
+                overflow: hidden;
+            }}
+
+            .ficha-detalles summary {{
+                cursor: pointer;
+                padding: 9px 11px;
+                font-size: 0.79rem;
                 font-weight: 850;
+                color: #263449;
+                list-style-position: inside;
+            }}
+
+            .ficha-detalle-texto {{
+                padding: 0 12px 11px 12px;
+                color: #435166;
+                font-size: 0.77rem;
+                line-height: 1.4;
+                overflow-wrap: anywhere;
+            }}
+
+            .ficha-footer {{
+                margin-top: 10px;
+                border-radius: 12px;
+                background: #fff8ea;
+                border: 1px solid #f3d38c;
+                padding: 8px 11px;
                 display: flex;
                 justify-content: space-between;
-                gap: 12px;
                 align-items: center;
+                gap: 10px;
+                color: #79510a;
+                font-size: 0.78rem;
+                font-weight: 800;
+            }}
+
+            @media screen and (max-width: 850px) {{
+                .ficha-resumen {{
+                    grid-template-columns:
+                        repeat(2, minmax(0, 1fr));
+                }}
+
+                .ficha-item:nth-child(2) {{
+                    border-right: 0;
+                }}
+
+                .ficha-item:nth-child(1),
+                .ficha-item:nth-child(2) {{
+                    border-bottom: 1px solid #e4eaf0;
+                }}
             }}
 
             @media screen and (max-width: 600px) {{
-                .modo-terreno-ficha-content {{
-                    padding-right: 0;
-                }}
-
-                .modo-terreno-type-ribbon {{
-                    display: none;
-                }}
-
-                .modo-terreno-product-bottle {{
-                    width: 46px;
-                    height: 58px;
-                }}
-
-                .modo-terreno-ficha-grid {{
-                    grid-template-columns: 1fr;
-                    border-radius: 16px;
-                }}
-
-                .modo-terreno-ficha-col {{
-                    border-right: 0;
-                    padding: 0;
-                    border-bottom: 1px solid #edf1f5;
-                }}
-
-                .modo-terreno-right-grid {{
-                    grid-template-columns: 1fr;
-                }}
-
-                .modo-terreno-right-grid .modo-terreno-ficha-section {{
-                    border-left: 0;
-                }}
-
-                .modo-terreno-observaciones {{
-                    margin: 8px 8px 0 8px;
-                }}
-
-                .modo-terreno-ficha-header {{
+                .ficha-encabezado {{
                     display: block;
                 }}
 
-                .modo-terreno-ficha-title {{
-                    font-size: 1.35rem;
+                .ficha-abejas {{
+                    margin-top: 10px;
                 }}
 
-                .modo-terreno-ficha-footer {{
+                .ficha-titulo {{
+                    font-size: 1.25rem;
+                }}
+
+                .ficha-resumen {{
+                    grid-template-columns: 1fr;
+                }}
+
+                .ficha-item {{
+                    border-right: 0;
+                    border-bottom: 1px solid #e4eaf0;
+                }}
+
+                .ficha-item:last-child {{
+                    border-bottom: 0;
+                }}
+
+                .ficha-detalles {{
+                    grid-template-columns: 1fr;
+                }}
+
+                .ficha-footer {{
                     display: block;
-                }}
-            }}
-
-            @media screen and (min-width: 601px) and (max-width: 900px) {{
-                .modo-terreno-ficha-grid {{
-                    grid-template-columns: repeat(2, minmax(0, 1fr));
-                }}
-
-                .modo-terreno-ficha-col:nth-child(2) {{
-                    border-right: 0;
-                    padding-right: 0;
-                }}
-
-                .modo-terreno-ficha-col:last-child {{
-                    grid-column: 1 / -1;
-                    border-right: 0;
-                    padding: 0;
-                    border-top: 1px solid #dde5ec;
                 }}
             }}
         </style>
     </head>
+
     <body>
-        <div class="modo-terreno-ficha">
-            <div class="modo-terreno-type-ribbon">{html.escape(tipo_texto)}</div>
-            <div class="modo-terreno-ficha-content">
-                <div class="modo-terreno-ficha-header">
-                    <div class="modo-terreno-ficha-head-main">
-                        {producto_visual}
-                        <div>
-                            <div class="modo-terreno-ficha-title">{nombre}</div>
-                            <div class="modo-terreno-ficha-subtitle">{subtitulo}</div>
-                            <span class="modo-terreno-pill">{tipo}</span>
-                            <span class="modo-terreno-bee {clase_abejas}">{html.escape(texto_abejas)}</span>
-                            <span class="modo-terreno-warning-badge">{advertencia}</span>
+        <div class="ficha-compacta">
+            <div class="ficha-encabezado">
+                <div class="ficha-producto">
+                    {producto_visual}
+
+                    <div>
+                        <div class="ficha-titulo">
+                            {nombre}
                         </div>
-                    </div>
-                    <div class="modo-terreno-ficha-bee-top">
-                        <span class="modo-terreno-bee-icon">🐝</span>
-                        <span class="modo-terreno-bee-top-badge">{html.escape(texto_abejas_header)}</span>
-                    </div>
-                </div>
-                <div class="modo-terreno-ficha-grid">
-                    <div class="modo-terreno-ficha-col">
-                        <div class="modo-terreno-ficha-section">
-                            <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-teal">⚗</span><span>Grupo químico</span></div>
-                            <div class="modo-terreno-ficha-section-value">{grupo}</div>
-                        </div>
-                        <div class="modo-terreno-ficha-section">
-                            <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-blue">⚗</span><span>Composición</span></div>
-                            <div class="modo-terreno-ficha-section-value">{ingrediente}</div>
-                        </div>
-                        <div class="modo-terreno-ficha-section">
-                            <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-green">✹</span><span>Plagas</span></div>
-                            <div class="modo-terreno-ficha-section-value">{problema}</div>
-                        </div>
-                    </div>
-                    <div class="modo-terreno-ficha-col">
-                        <div class="modo-terreno-ficha-section">
-                            <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-green">◖</span><span>Aplicación</span></div>
-                            <div class="modo-terreno-ficha-section-value">{dosis}</div>
-                            <div class="modo-terreno-dose-chip">Dosis referencial</div>
-                        </div>
-                    </div>
-                    <div class="modo-terreno-ficha-col">
-                        <div class="modo-terreno-right-grid">
-                            <div class="modo-terreno-ficha-section">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-blue">↗</span><span>Compatibilidad</span></div>
-                                <div class="modo-terreno-ficha-section-value">{compatibilidad}</div>
-                            </div>
-                            <div class="modo-terreno-ficha-section">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-red">▯</span><span>Incompatibilidad</span></div>
-                                <div class="modo-terreno-ficha-section-value">{incompatibilidad}</div>
-                            </div>
-                            <div class="modo-terreno-ficha-section">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-blue">♟</span><span>Reingreso</span></div>
-                                <div class="modo-terreno-ficha-section-value">{reingreso}</div>
-                            </div>
-                            <div class="modo-terreno-ficha-section">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-green">◖</span><span>Fitotoxicidad</span></div>
-                                <div class="modo-terreno-ficha-section-value">{fitotoxicidad}</div>
-                            </div>
-                            <div class="modo-terreno-ficha-section modo-terreno-observaciones">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon">☏</span><span>Observaciones</span></div>
-                                <div class="modo-terreno-ficha-section-value">{observaciones_html}</div>
-                            </div>
+
+                        <div class="ficha-subtitulo">
+                            {subtitulo}
                         </div>
                     </div>
                 </div>
-                <div class="modo-terreno-ficha-footer">
-                    <span>Lea siempre la etiqueta antes de usar el producto.</span>
-                    <span>{advertencia}</span>
+
+                <div class="ficha-abejas">
+                    <span>🐝</span>
+
+                    <span class="ficha-abejas-badge">
+                        {html.escape(texto_abejas_header)}
+                    </span>
                 </div>
+            </div>
+
+            <div class="ficha-resumen">
+                <div class="ficha-item">
+                    <div class="ficha-item-titulo">
+                        ⚗ Grupo químico
+                    </div>
+
+                    <div class="ficha-item-valor">
+                        {grupo}
+                    </div>
+                </div>
+
+                <div class="ficha-item">
+                    <div class="ficha-item-titulo">
+                        🧬 Composición
+                    </div>
+
+                    <div class="ficha-item-valor">
+                        {ingrediente}
+                    </div>
+                </div>
+
+                <div class="ficha-item">
+                    <div class="ficha-item-titulo">
+                        ✹ Plagas, enfermedades o malezas
+                    </div>
+
+                    <div class="ficha-item-valor">
+                        {problema}
+                    </div>
+                </div>
+
+                <div class="ficha-item">
+                    <div class="ficha-item-titulo">
+                        ◖ Aplicación
+                    </div>
+
+                    <div class="ficha-item-valor">
+                        {dosis}
+                    </div>
+
+                    <span class="ficha-dose-chip">
+                        Dosis referencial
+                    </span>
+                </div>
+            </div>
+
+            <div class="ficha-reingreso">
+                <strong>🚶 Reingreso:</strong>
+                {reingreso_resumido}
+            </div>
+
+            <div class="ficha-detalles">
+                <details>
+                    <summary>
+                        Compatibilidad
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {compatibilidad}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>
+                        Incompatibilidad
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {incompatibilidad}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>
+                        Fitotoxicidad
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {fitotoxicidad}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>
+                        Reingreso completo
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {reingreso}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>
+                        Observaciones y experiencia de campo
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {observaciones_html}
+                    </div>
+                </details>
+            </div>
+
+            <div class="ficha-footer">
+                <span>
+                    Lea siempre la etiqueta antes de usar el producto.
+                </span>
+
+                <span>
+                    {advertencia}
+                </span>
             </div>
         </div>
     </body>
     </html>
     """
 
-    st.html(textwrap.dedent(html_ficha))
+    st.html(
+        textwrap.dedent(html_ficha)
+    )
+
 
 
 def evaluar_compatibilidad_seleccion(productos):
@@ -5276,800 +5496,419 @@ with tab_base:
 
     df = obtener_productos()
 
-    if "tipo" not in df.columns:
-        df["tipo"] = ""
+    columnas_necesarias = [
+        "tipo",
+        "ingrediente",
+        "grupo",
+        "carencia",
+        "pdf"
+    ]
 
-    if "dosis" not in df.columns:
-        df["dosis"] = ""
-
-    if "compatibilidad" not in df.columns:
-        df["compatibilidad"] = ""
-
-    if "incompatibilidad" not in df.columns:
-        df["incompatibilidad"] = ""
-
-    if "fitotoxicidad" not in df.columns:
-        df["fitotoxicidad"] = ""
+    for columna in columnas_necesarias:
+        if columna not in df.columns:
+            df[columna] = ""
 
     if not df.empty:
-        df["tipo"] = df.apply(completar_tipo_fila, axis=1)
+        df["tipo"] = df.apply(
+            completar_tipo_fila,
+            axis=1
+        )
 
+    # Encabezado y tabla visual.
     base_datos_mockup_header()
     tabla_base_datos_mockup(df)
-    acciones_base_datos_mockup()
 
-    if not df.empty:
-        excel = convertir_excel(df.drop(columns=["id"], errors="ignore"))
+    st.markdown(
+        """
+        <style>
+        /* Tarjetas inferiores de Base de datos */
+        .base-funcional-marker {
+            display: none;
+        }
 
-        st.download_button(
-            label="Descargar base en Excel",
-            data=excel,
-            file_name="base_productos_agricolas.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        div[data-testid="stHorizontalBlock"]:has(
+            .base-funcional-marker
+        ) {
+            max-width: 920px;
+            margin: 18px auto 0 auto;
+            gap: 18px;
+            align-items: stretch;
+        }
 
-        respaldo_zip = generar_respaldo_completo(df)
+        div[data-testid="stVerticalBlock"]:has(
+            .base-selector-marker
+        ),
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) {
+            border: 1px solid #d6dee8;
+            border-radius: 18px;
+            background: #ffffff;
+            padding: 18px;
+            box-shadow: 0 9px 26px rgba(15, 23, 42, 0.08);
+            min-height: 190px;
+        }
 
-        st.download_button(
-            label="Descargar respaldo completo ZIP",
-            data=respaldo_zip,
-            file_name="respaldo_ia_agricola_v15.zip",
-            mime="application/zip"
-        )
+        .base-selector-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2px;
+            color: #0f172a;
+            font-size: 1.18rem;
+            font-weight: 850;
+        }
 
-    if st.button("Eliminar PDFs repetidos"):
-        eliminar_duplicados()
-        st.success("Duplicados eliminados")
-        st.rerun()
+        .base-selector-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eafaf2;
+            color: #14965a;
+            border: 1px solid #bcebd2;
+            font-size: 1.1rem;
+        }
+
+        .base-selector-subtitle {
+            color: #64748b;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-left: 46px;
+            margin-bottom: 14px;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .base-selector-marker
+        ) div[data-baseweb="select"] > div {
+            border-radius: 12px !important;
+            border: 1.5px solid #f0bf54 !important;
+            background: #fff9e9 !important;
+            min-height: 48px;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) div.stButton > button,
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) div.stDownloadButton > button {
+            width: 100%;
+            min-height: 68px;
+            border: none !important;
+            border-radius: 13px !important;
+            background: linear-gradient(
+                135deg,
+                #0763ca,
+                #0753b7
+            ) !important;
+            color: #ffffff !important;
+            font-weight: 850 !important;
+            font-size: 0.96rem !important;
+            box-shadow: 0 7px 16px rgba(7, 83, 183, 0.22);
+            margin-bottom: 8px;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) div.stButton > button:hover,
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) div.stDownloadButton > button:hover {
+            background: linear-gradient(
+                135deg,
+                #0757b5,
+                #06469a
+            ) !important;
+            transform: translateY(-1px);
+        }
+
+        .base-producto-seleccionado {
+            max-width: 920px;
+            margin: 10px auto 0 auto;
+            color: #64748b;
+            font-size: 0.84rem;
+        }
+
+        .base-admin-wrapper {
+            max-width: 920px;
+            margin: 12px auto 0 auto;
+        }
+
+        @media screen and (max-width: 700px) {
+            div[data-testid="stHorizontalBlock"]:has(
+                .base-funcional-marker
+            ) {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(
+                .base-selector-marker
+            ),
+            div[data-testid="stVerticalBlock"]:has(
+                .base-botones-marker
+            ) {
+                padding: 14px !important;
+                min-height: auto !important;
+                border-radius: 15px !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(
+                .base-botones-marker
+            ) div.stButton > button,
+            div[data-testid="stVerticalBlock"]:has(
+                .base-botones-marker
+            ) div.stDownloadButton > button {
+                min-height: 54px !important;
+                font-size: 0.88rem !important;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
     if df.empty:
-        st.info("Aun no hay productos guardados.")
+        st.info("Aún no hay productos guardados.")
+
     else:
-        tipos_disponibles = [
-            tipo for tipo in df["tipo"].dropna().unique().tolist()
-            if str(tipo).strip() != ""
+        opciones_productos = {}
+
+        for _, fila in df.iterrows():
+            nombre = str(
+                fila.get("nombre", "")
+            ).strip()
+
+            tipo = str(
+                fila.get("tipo", "")
+            ).strip()
+
+            producto_id = int(fila["id"])
+
+            etiqueta = (
+                f"{nombre} | {tipo} | ID {producto_id}"
+            )
+
+            opciones_productos[etiqueta] = fila
+
+        col_selector, col_botones = st.columns(
+            [1.15, 0.75]
+        )
+
+        with col_selector:
+            st.markdown(
+                '<div class="base-funcional-marker base-selector-marker"></div>',
+                unsafe_allow_html=True
+            )
+
+            st.markdown(
+                """
+                <div class="base-selector-title">
+                    <span class="base-selector-icon">▯</span>
+                    <span>Seleccionar producto</span>
+                </div>
+                <div class="base-selector-subtitle">
+                    Busca y selecciona un producto de la base de datos.
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            producto_seleccionado = st.selectbox(
+                "Producto",
+                list(opciones_productos.keys()),
+                key="base_producto_seleccionado",
+                label_visibility="collapsed"
+            )
+
+        fila_seleccionada = opciones_productos[
+            producto_seleccionado
         ]
 
-        tipos_disponibles = ["Todos"] + sorted(tipos_disponibles)
-
-        cultivos_lista = []
-
-        for valor in df["cultivos"].dropna().tolist():
-            partes = str(valor).split(",")
-
-            for parte in partes:
-                cultivo = parte.strip()
-
-                if cultivo != "":
-                    cultivos_lista.append(cultivo)
-
-        cultivos_disponibles = ["Todos"] + sorted(set(cultivos_lista))
-
-        ingredientes_lista = []
-
-        for valor in df["ingrediente"].dropna().tolist():
-            partes = str(valor).split(",")
-
-            for parte in partes:
-                ingrediente = parte.strip()
-
-                if ingrediente != "":
-                    ingredientes_lista.append(ingrediente)
-
-        ingredientes_disponibles = ["Todos"] + sorted(set(ingredientes_lista))
-
-        problemas_lista = []
-
-        for columna in ["enfermedades", "insectos"]:
-            for valor in df[columna].dropna().tolist():
-                partes = str(valor).split(",")
-
-                for parte in partes:
-                    problema = parte.strip()
-
-                    if problema != "":
-                        problemas_lista.append(problema)
-
-        problemas_disponibles = ["Todos"] + sorted(set(problemas_lista))
-
-        if "filtro_tipo" not in st.session_state:
-            st.session_state["filtro_tipo"] = "Todos"
-
-        if "filtro_cultivo" not in st.session_state:
-            st.session_state["filtro_cultivo"] = "Todos"
-
-        if "filtro_ingrediente" not in st.session_state:
-            st.session_state["filtro_ingrediente"] = "Todos"
-
-        if "filtro_problema" not in st.session_state:
-            st.session_state["filtro_problema"] = "Todos"
-
-        if "busqueda_base" not in st.session_state:
-            st.session_state["busqueda_base"] = ""
-
-        if st.session_state["filtro_tipo"] not in tipos_disponibles:
-            st.session_state["filtro_tipo"] = "Todos"
-
-        if st.session_state["filtro_cultivo"] not in cultivos_disponibles:
-            st.session_state["filtro_cultivo"] = "Todos"
-
-        if st.session_state["filtro_ingrediente"] not in ingredientes_disponibles:
-            st.session_state["filtro_ingrediente"] = "Todos"
-
-        if st.session_state["filtro_problema"] not in problemas_disponibles:
-            st.session_state["filtro_problema"] = "Todos"
-
-        if st.button("Limpiar filtros"):
-            st.session_state["filtro_tipo"] = "Todos"
-            st.session_state["filtro_cultivo"] = "Todos"
-            st.session_state["filtro_ingrediente"] = "Todos"
-            st.session_state["filtro_problema"] = "Todos"
-            st.session_state["busqueda_base"] = ""
-            st.rerun()
-
-        col_filtro1, col_filtro2, col_filtro3, col_filtro4, col_filtro5 = st.columns([1, 1, 1, 1, 2])
-
-        with col_filtro1:
-            filtro_tipo = st.selectbox(
-                "Filtrar por tipo",
-                tipos_disponibles,
-                key="filtro_tipo"
-            )
-
-        with col_filtro2:
-            filtro_cultivo = st.selectbox(
-                "Filtrar por cultivo",
-                cultivos_disponibles,
-                key="filtro_cultivo"
-            )
-
-        with col_filtro3:
-            filtro_ingrediente = st.selectbox(
-                "Filtrar por ingrediente",
-                ingredientes_disponibles,
-                key="filtro_ingrediente"
-            )
-
-        with col_filtro4:
-            filtro_problema = st.selectbox(
-                "Filtrar por problema",
-                problemas_disponibles,
-                key="filtro_problema"
-            )
-
-        with col_filtro5:
-            busqueda = st.text_input(
-                "Buscar en la base",
-                key="busqueda_base"
-            )
-
-        df_filtrado = df.copy()
-
-        if filtro_tipo != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["tipo"] == filtro_tipo]
-
-        if filtro_cultivo != "Todos":
-            df_filtrado = df_filtrado[
-                df_filtrado["cultivos"].astype(str).str.contains(
-                    filtro_cultivo,
-                    case=False,
-                    na=False
-                )
-            ]
-
-        if filtro_ingrediente != "Todos":
-            df_filtrado = df_filtrado[
-                df_filtrado["ingrediente"].astype(str).str.contains(
-                    filtro_ingrediente,
-                    case=False,
-                    na=False
-                )
-            ]
-
-        if filtro_problema != "Todos":
-            filtro_enfermedad = df_filtrado["enfermedades"].astype(str).str.contains(
-                filtro_problema,
-                case=False,
-                na=False
-            )
-
-            filtro_insecto = df_filtrado["insectos"].astype(str).str.contains(
-                filtro_problema,
-                case=False,
-                na=False
-            )
-
-            df_filtrado = df_filtrado[filtro_enfermedad | filtro_insecto]
-
-        if busqueda:
-            filtro = df_filtrado.apply(
-                lambda fila: fila.astype(str).str.contains(
-                    busqueda,
-                    case=False,
-                    na=False
-                ).any(),
-                axis=1
-            )
-            df_mostrar = df_filtrado[filtro].copy()
-        else:
-            df_mostrar = df_filtrado.copy()
-
-        st.info(
-            f"Mostrando {len(df_mostrar)} producto(s) de {len(df)} guardado(s)"
+        producto_id = int(
+            fila_seleccionada["id"]
         )
 
-        vista_compacta = st.toggle(
-            "Vista compacta para teléfono/tablet",
-            value=False
-        )
-
-        if vista_compacta:
-            st.subheader("Vista compacta de productos")
-
-            for _, fila_card in df_mostrar.iterrows():
-                nombre_card = str(fila_card.get("nombre", "")).replace("CONSENTIMIENTO", "CONSENTO")
-                tipo_card = str(fila_card.get("tipo", ""))
-                pdf_card = str(fila_card.get("pdf", ""))
-
-                titulo_card = f"{nombre_card} | {tipo_card} | {pdf_card}"
-
-                with st.expander(titulo_card):
-                    problema_card = str(fila_card.get("problema", "")).strip()
-
-                    if problema_card == "" or problema_card.lower() == "nan":
-                        enfermedades_card = str(fila_card.get("enfermedades", "")).strip()
-                        insectos_card = str(fila_card.get("insectos", "")).strip()
-
-                        problema_card = ", ".join(
-                            dato for dato in [enfermedades_card, insectos_card]
-                            if dato != "" and dato.lower() != "nan"
-                        )
-
-                    st.markdown(f"### {nombre_card}")
-
-                    st.write(f"**Tipo:** {fila_card.get('tipo', '')}")
-                    st.write(f"**Ingrediente activo:** {fila_card.get('ingrediente', '')}")
-                    st.write(f"**Grupo:** {fila_card.get('grupo', '')}")
-                    st.write(f"**Dosis:** {fila_card.get('dosis', '')}")
-                    st.write(f"**Cultivos:** {fila_card.get('cultivos', '')}")
-                    st.write(f"**Problema:** {problema_card}")
-                    st.write(f"**Carencia:** {fila_card.get('carencia', '')}")
-                    st.write(f"**Reingreso:** {fila_card.get('reingreso', '')}")
-                    st.write(f"**Abejas:** {fila_card.get('toxicidad_abejas', '')}")
-
-                    compat_card = str(fila_card.get("compatibilidad", "")).strip()
-                    incompat_card = str(fila_card.get("incompatibilidad", "")).strip()
-                    fito_card = str(fila_card.get("fitotoxicidad", "")).strip()
-
-                    if compat_card != "" and compat_card.lower() != "nan":
-                        st.success(f"Compatibilidad: {compat_card}")
-
-                    if incompat_card != "" and incompat_card.lower() != "nan":
-                        st.error(f"Incompatibilidad: {incompat_card}")
-
-                    if fito_card != "" and fito_card.lower() != "nan":
-                        st.warning(f"Fitotoxicidad: {fito_card}")
-
-                    st.caption(f"PDF de respaldo: {pdf_card}")
-
-            st.divider()
-        if not df_mostrar.empty:
-            st.subheader("Comparador de compatibilidad")
-
-            def normalizar_comparador(valor):
-                valor = str(valor).lower()
-                reemplazos = {
-                    "á": "a",
-                    "é": "e",
-                    "í": "i",
-                    "ó": "o",
-                    "ú": "u",
-                    "ñ": "n",
-                    "®": "",
-                    "™": "",
-                    "%": " ",
-                    ".": " ",
-                    ",": " ",
-                    "-": " ",
-                    "_": " ",
-                    "/": " "
-                }
-
-                for viejo, nuevo in reemplazos.items():
-                    valor = valor.replace(viejo, nuevo)
-
-                valor = " ".join(valor.split())
-
-                return valor
-
-            def palabras_clave_producto(nombre):
-                nombre = normalizar_comparador(nombre)
-
-                palabras_excluir = {
-                    "sc", "ec", "wg", "wp", "sl", "od", "sp", "sg",
-                    "etiqueta", "pdf", "de", "del", "la", "el", "los",
-                    "las", "producto"
-                }
-
-                palabras = []
-
-                for palabra in nombre.split():
-                    if palabra in palabras_excluir:
-                        continue
-
-                    if len(palabra) <= 2:
-                        continue
-
-                    palabras.append(palabra)
-
-                return palabras
-
-            def etiqueta_menciona_producto(texto_etiqueta, nombre_producto):
-                texto_etiqueta = normalizar_comparador(texto_etiqueta)
-                nombre_producto_normalizado = normalizar_comparador(nombre_producto)
-
-                if nombre_producto_normalizado != "" and nombre_producto_normalizado in texto_etiqueta:
-                    return True
-
-                palabras = palabras_clave_producto(nombre_producto)
-
-                if not palabras:
-                    return False
-
-                coincidencias = 0
-
-                for palabra in palabras:
-                    if palabra in texto_etiqueta:
-                        coincidencias += 1
-
-                if len(palabras) == 1 and coincidencias == 1:
-                    return True
-
-                if len(palabras) >= 2 and coincidencias >= 2:
-                    return True
-
-                return False
-
-            opciones_comparador = {}
-
-            for _, fila in df.iterrows():
-                etiqueta = f'{fila["nombre"]} | {fila["tipo"]} | {fila["pdf"]} | ID {fila["id"]}'
-                opciones_comparador[etiqueta] = fila
-
-            etiquetas_productos = list(opciones_comparador.keys())
-
-            col_comp1, col_comp2 = st.columns(2)
-
-            with col_comp1:
-                producto_a_label = st.selectbox(
-                    "Producto A",
-                    etiquetas_productos,
-                    key="comparador_producto_a"
-                )
-
-            with col_comp2:
-                producto_b_label = st.selectbox(
-                    "Producto B",
-                    etiquetas_productos,
-                    key="comparador_producto_b"
-                )
-
-            fila_a = opciones_comparador[producto_a_label]
-            fila_b = opciones_comparador[producto_b_label]
-
-            nombre_a = str(fila_a.get("nombre", "")).strip()
-            nombre_b = str(fila_b.get("nombre", "")).strip()
-
-            compat_a = str(fila_a.get("compatibilidad", "")).strip()
-            incompat_a = str(fila_a.get("incompatibilidad", "")).strip()
-
-            compat_b = str(fila_b.get("compatibilidad", "")).strip()
-            incompat_b = str(fila_b.get("incompatibilidad", "")).strip()
-
-            if nombre_a == nombre_b:
-                st.info("Selecciona dos productos distintos para comparar.")
-            else:
-                compatible = False
-                incompatible = False
-                detalles = []
-
-                if etiqueta_menciona_producto(compat_a, nombre_b):
-                    compatible = True
-                    detalles.append(
-                        f"La etiqueta de {nombre_a} menciona compatibilidad con {nombre_b}."
-                    )
-
-                if etiqueta_menciona_producto(compat_b, nombre_a):
-                    compatible = True
-                    detalles.append(
-                        f"La etiqueta de {nombre_b} menciona compatibilidad con {nombre_a}."
-                    )
-
-                if etiqueta_menciona_producto(incompat_a, nombre_b):
-                    incompatible = True
-                    detalles.append(
-                        f"La etiqueta de {nombre_a} menciona incompatibilidad con {nombre_b}."
-                    )
-
-                if etiqueta_menciona_producto(incompat_b, nombre_a):
-                    incompatible = True
-                    detalles.append(
-                        f"La etiqueta de {nombre_b} menciona incompatibilidad con {nombre_a}."
-                    )
-
-                if incompatible:
-                    st.error("No compatible según etiqueta.")
-                    for detalle in detalles:
-                        st.write(detalle)
-
-                elif compatible:
-                    st.success("Compatible según etiqueta.")
-                    for detalle in detalles:
-                        st.write(detalle)
-
-                else:
-                    st.warning(
-                        "No hay información suficiente en las etiquetas guardadas para confirmar compatibilidad. "
-                        "Revisar etiqueta SAG oficial antes de mezclar productos."
-                    )
-
-                    st.write(
-                        f"No se encontró una compatibilidad directa entre **{nombre_a}** y **{nombre_b}**."
-                    )
-
-                    if compat_a.strip() == "" or compat_a.lower() == "nan":
-                        st.write(f"**{nombre_a}** no tiene información de compatibilidad cargada.")
-                    else:
-                        st.write(f"**Compatibilidad registrada para {nombre_a}:**")
-                        st.write(compat_a)
-
-                    if compat_b.strip() == "" or compat_b.lower() == "nan":
-                        st.write(f"**{nombre_b}** no tiene información de compatibilidad cargada.")
-                    else:
-                        st.write(f"**Compatibilidad registrada para {nombre_b}:**")
-                        st.write(compat_b)
-
-                    if incompat_a.strip() != "" and incompat_a.lower() != "nan":
-                        st.write(f"**Incompatibilidad general de {nombre_a}:**")
-                        st.write(incompat_a)
-
-                    if incompat_b.strip() != "" and incompat_b.lower() != "nan":
-                        st.write(f"**Incompatibilidad general de {nombre_b}:**")
-                        st.write(incompat_b)
-
-                    st.info(
-                        "La app solo confirma compatibilidad cuando una etiqueta menciona claramente al otro producto. "
-                        "Si no aparece, no significa que sean incompatibles; significa que falta información."
-                    )
-
-                    st.write("Puedes completar esta información manualmente:")
-
-                    col_manual_a, col_manual_b = st.columns(2)
-
-                    with col_manual_a:
-                        if st.button(
-                            f"Completar compatibilidad de {nombre_a}",
-                            key=f"btn_completar_compat_a_{fila_a['id']}_{fila_b['id']}"
-                        ):
-                            st.session_state["producto_compatibilidad_manual"] = producto_a_label
-                            st.rerun()
-
-                    with col_manual_b:
-                        if st.button(
-                            f"Completar compatibilidad de {nombre_b}",
-                            key=f"btn_completar_compat_b_{fila_a['id']}_{fila_b['id']}"
-                        ):
-                            st.session_state["producto_compatibilidad_manual"] = producto_b_label
-                            st.rerun()
-
-                with st.expander("Ver información de compatibilidad usada para comparar"):
-                    st.write(f"**Compatibilidad de {nombre_a}:**")
-                    st.write(compat_a if compat_a else "Sin información")
-
-                    st.write(f"**Incompatibilidad de {nombre_a}:**")
-                    st.write(incompat_a if incompat_a else "Sin información")
-
-                    st.write(f"**Compatibilidad de {nombre_b}:**")
-                    st.write(compat_b if compat_b else "Sin información")
-
-                    st.write(f"**Incompatibilidad de {nombre_b}:**")
-                    st.write(incompat_b if incompat_b else "Sin información")
-
-            st.divider()
-
-        if not df_mostrar.empty:
-            st.subheader("Agregar compatibilidad manual")
-
-            opciones_manual = {}
-
-            for _, fila in df.iterrows():
-                etiqueta = f'{fila["nombre"]} | {fila["tipo"]} | {fila["pdf"]} | ID {fila["id"]}'
-                opciones_manual[etiqueta] = fila
-
-            producto_manual = st.selectbox(
-                "Selecciona producto para editar compatibilidad",
-                list(opciones_manual.keys()),
-                key="producto_compatibilidad_manual"
+        nombre_producto = str(
+            fila_seleccionada.get(
+                "nombre",
+                ""
             )
+        ).strip()
 
-            fila_manual = opciones_manual[producto_manual]
-
-            compat_actual = str(fila_manual.get("compatibilidad", "")).strip()
-            incompat_actual = str(fila_manual.get("incompatibilidad", "")).strip()
-            fito_actual = str(fila_manual.get("fitotoxicidad", "")).strip()
-
-            if compat_actual.lower() == "nan":
-                compat_actual = ""
-
-            if incompat_actual.lower() == "nan":
-                incompat_actual = ""
-
-            if fito_actual.lower() == "nan":
-                fito_actual = ""
-
-            compat_manual = st.text_area(
-                "Compatible con",
-                value=compat_actual,
-                key=f"compat_manual_{fila_manual['id']}"
+        referencia_pdf = str(
+            fila_seleccionada.get(
+                "pdf",
+                ""
             )
+        ).strip()
 
-            incompat_manual = st.text_area(
-                "Incompatible con",
-                value=incompat_actual,
-                key=f"incompat_manual_{fila_manual['id']}"
-            )
+        pdf_bytes = None
+        nombre_pdf = ""
 
-            fito_manual = st.text_area(
-                "Fitotoxicidad",
-                value=fito_actual,
-                key=f"fito_manual_{fila_manual['id']}"
-            )
-
-            if st.button("Guardar compatibilidad manual"):
-                guardar_compatibilidad_manual(
-                    int(fila_manual["id"]),
-                    compat_manual,
-                    incompat_manual,
-                    fito_manual
-                )
-
-                st.success("Compatibilidad manual guardada correctamente")
-                st.rerun()
-
-            st.divider()
-
-        if not df_mostrar.empty:
-            st.subheader("Generar ficha técnica")
-
-            opciones_ficha = {}
-
-            for _, fila in df_mostrar.iterrows():
-                etiqueta = f'{fila["nombre"]} | {fila["tipo"]} | {fila["pdf"]} | ID {fila["id"]}'
-                opciones_ficha[etiqueta] = fila
-
-            producto_ficha = st.selectbox(
-                "Selecciona un producto para generar ficha",
-                list(opciones_ficha.keys())
-            )
-
-            fila_ficha = opciones_ficha[producto_ficha]
-
-            st.subheader("Vista visual del producto")
-
-            nombre_visual = str(fila_ficha.get("nombre", "")).replace("CONSENTIMIENTO", "CONSENTO")
-            tipo_visual = str(fila_ficha.get("tipo", ""))
-            grupo_visual = str(fila_ficha.get("grupo", ""))
-
-            st.info(
-                f"**Producto:** {nombre_visual} | **Tipo:** {tipo_visual} | **Grupo:** {grupo_visual}"
-            )
-
-            problema_visual = str(fila_ficha.get("problema", "")).strip()
-
-            if problema_visual == "" or problema_visual.lower() == "nan":
-                enfermedades_visual = str(fila_ficha.get("enfermedades", "")).strip()
-                insectos_visual = str(fila_ficha.get("insectos", "")).strip()
-
-                problema_visual = ", ".join(
-                    dato for dato in [enfermedades_visual, insectos_visual]
-                    if dato != "" and dato.lower() != "nan"
-                )
-
-            col_v1, col_v2, col_v3 = st.columns(3)
-
-            with col_v1:
-                st.markdown("### 🧪 Grupo químico")
-                st.write(fila_ficha.get("grupo", ""))
-
-                st.markdown("### 🧬 Composición")
-                st.write(fila_ficha.get("ingrediente", ""))
-
-                st.markdown("### 🐛 Problema")
-                st.write(problema_visual)
-
-            with col_v2:
-                st.markdown("### 👩‍🌾 Aplicación")
-                st.write("**Dosis:**")
-                st.write(fila_ficha.get("dosis", ""))
-
-                st.write("**Cultivos:**")
-                st.write(fila_ficha.get("cultivos", ""))
-
-                st.write("**Carencia:**")
-                st.write(fila_ficha.get("carencia", ""))
-
-            with col_v3:
-                st.markdown("### 🔗 Compatibilidad")
-                compatibilidad_visual = str(fila_ficha.get("compatibilidad", "")).strip()
-                incompatibilidad_visual = str(fila_ficha.get("incompatibilidad", "")).strip()
-                fitotoxicidad_visual = str(fila_ficha.get("fitotoxicidad", "")).strip()
-
-                if compatibilidad_visual != "" and compatibilidad_visual.lower() != "nan":
-                    st.success(compatibilidad_visual)
-                else:
-                    st.write("Sin información de compatibilidad.")
-
-                st.markdown("### ❗ Incompatibilidad")
-                if incompatibilidad_visual != "" and incompatibilidad_visual.lower() != "nan":
-                    st.error(incompatibilidad_visual)
-                else:
-                    st.write("Sin información de incompatibilidad.")
-
-                st.markdown("### 💀 Fitotoxicidad")
-                if fitotoxicidad_visual != "" and fitotoxicidad_visual.lower() != "nan":
-                    st.warning(fitotoxicidad_visual)
-                else:
-                    st.write("Sin información de fitotoxicidad.")
-
-                st.markdown("### 🚶 Reingreso")
-                st.write(fila_ficha.get("reingreso", ""))
-
-                st.markdown("### 🐝 Abejas")
-                abejas_visual = str(fila_ficha.get("toxicidad_abejas", ""))
-
-                if "altamente" in abejas_visual.lower() or "muy" in abejas_visual.lower():
-                    st.error(abejas_visual)
-                elif abejas_visual != "":
-                    st.warning(abejas_visual)
-                else:
-                    st.write("Sin información")
-
-            st.warning("Revisar siempre la etiqueta SAG oficial antes de aplicar.")
-            st.caption(f"PDF de respaldo: {fila_ficha.get('pdf', '')}")
-
-            archivo_ficha = generar_ficha_word(fila_ficha)
-
-            st.download_button(
-                label="Descargar ficha técnica en Word",
-                data=archivo_ficha,
-                file_name=nombre_archivo_ficha(fila_ficha["nombre"]),
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
-
-            pdf_respaldo = str(fila_ficha.get("pdf", "")).strip()
-
+        if (
+            referencia_pdf
+            and referencia_pdf.lower() != "nan"
+        ):
             try:
-                pdf_respaldo_bytes, nombre_pdf_respaldo = (
-                    obtener_pdf_bytes(pdf_respaldo)
+                pdf_bytes, nombre_pdf = obtener_pdf_bytes(
+                    referencia_pdf
                 )
             except Exception as error:
-                pdf_respaldo_bytes = None
-                nombre_pdf_respaldo = pdf_respaldo
                 st.warning(
-                    f"No fue posible abrir el PDF de respaldo: {error}"
+                    "No fue posible obtener el PDF: "
+                    f"{error}"
                 )
 
-            if pdf_respaldo_bytes:
-                with st.expander(
-                    "Ver PDF de respaldo del producto seleccionado"
-                ):
-                    mostrar_pdf_bytes(pdf_respaldo_bytes)
+        with col_botones:
+            st.markdown(
+                '<div class="base-funcional-marker base-botones-marker"></div>',
+                unsafe_allow_html=True
+            )
 
+            if st.button(
+                "▣  Ver PDF del producto seleccionado",
+                key=f"base_ver_pdf_{producto_id}",
+                use_container_width=True,
+                disabled=not bool(pdf_bytes)
+            ):
+                st.session_state[
+                    "base_pdf_visible_id"
+                ] = producto_id
+
+            if pdf_bytes:
                 st.download_button(
-                    label="Descargar PDF de respaldo",
-                    data=pdf_respaldo_bytes,
-                    file_name=nombre_pdf_respaldo,
+                    "▣  Descargar PDF seleccionado",
+                    data=pdf_bytes,
+                    file_name=(
+                        nombre_pdf
+                        or f"{nombre_producto}.pdf"
+                    ),
                     mime="application/pdf",
-                    key=f"descargar_pdf_respaldo_{fila_ficha['id']}"
+                    key=(
+                        "base_descargar_pdf_"
+                        f"{producto_id}"
+                    ),
+                    use_container_width=True
                 )
             else:
-                st.warning("PDF de respaldo no disponible.")
+                st.button(
+                    "▣  Descargar PDF seleccionado",
+                    key=(
+                        "base_descargar_pdf_"
+                        f"desactivado_{producto_id}"
+                    ),
+                    disabled=True,
+                    use_container_width=True
+                )
 
-        df_mostrar["problema"] = (
-            df_mostrar["enfermedades"].astype(str).replace("nan", "")
-            + ", "
-            + df_mostrar["insectos"].astype(str).replace("nan", "")
+        st.markdown(
+            (
+                '<div class="base-producto-seleccionado">'
+                f'Producto seleccionado: '
+                f'<strong>{html.escape(nombre_producto)}</strong>'
+                '</div>'
+            ),
+            unsafe_allow_html=True
         )
 
-        df_mostrar["problema"] = df_mostrar["problema"].str.strip(", ").str.strip()
+        if (
+            st.session_state.get(
+                "base_pdf_visible_id"
+            ) == producto_id
+            and pdf_bytes
+        ):
+            with st.expander(
+                f"PDF de {nombre_producto}",
+                expanded=True
+            ):
+                mostrar_pdf_bytes(
+                    pdf_bytes,
+                    alto=650
+                )
 
-        df_mostrar["Eliminar"] = False
-
-        columnas = [
-            "id",
-            "nombre",
-            "tipo",
-            "dosis",
-            "cultivos",
-            "problema",
-            "ingrediente",
-            "grupo",
-            "carencia",
-            "reingreso",
-            "toxicidad_abejas",
-            "pdf",
-            "Eliminar"
-        ]
-
-        df_mostrar = df_mostrar[columnas]
-
-        gb = GridOptionsBuilder.from_dataframe(df_mostrar)
-
-        gb.configure_default_column(
-            filter=True,
-            sortable=True,
-            resizable=True,
-            wrapText=False,
-            autoHeight=False
+        st.markdown(
+            '<div class="base-admin-wrapper">',
+            unsafe_allow_html=True
         )
 
-        gb.configure_pagination(
-            paginationAutoPageSize=False,
-            paginationPageSize=10
+        with st.expander(
+            "⚙️ Administración avanzada",
+            expanded=False
+        ):
+            st.caption(
+                "Esta sección permite eliminar un producto "
+                "y su archivo PDF."
+            )
+
+            with st.expander(
+                "🗑️ Eliminar producto",
+                expanded=False
+            ):
+                st.warning(
+                    "Esta acción es permanente. Se eliminará "
+                    "el producto de la base de datos y también "
+                    "su PDF almacenado."
+                )
+
+                confirmar = st.checkbox(
+                    (
+                        "Confirmo que deseo eliminar "
+                        f"{nombre_producto}"
+                    ),
+                    key=(
+                        "base_confirmar_eliminar_"
+                        f"{producto_id}"
+                    )
+                )
+
+                if st.button(
+                    "Eliminar producto y PDF",
+                    key=f"base_eliminar_{producto_id}",
+                    use_container_width=True,
+                    disabled=not confirmar
+                ):
+                    try:
+                        with st.spinner(
+                            "Eliminando producto y PDF..."
+                        ):
+                            if (
+                                referencia_pdf
+                                and referencia_pdf.lower()
+                                != "nan"
+                            ):
+                                eliminar_pdf_storage(
+                                    referencia_pdf
+                                )
+
+                            eliminar_producto(
+                                producto_id
+                            )
+
+                        st.session_state.pop(
+                            "base_pdf_visible_id",
+                            None
+                        )
+
+                        st.success(
+                            f"{nombre_producto} fue eliminado."
+                        )
+
+                        st.rerun()
+
+                    except Exception as error:
+                        st.error(
+                            "No fue posible eliminar el producto: "
+                            f"{error}"
+                        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
         )
-
-        gb.configure_column("id", headerName="ID", editable=False, hide=True)
-        gb.configure_column("nombre", headerName="Producto", editable=False, pinned="left", width=200)
-        gb.configure_column("tipo", headerName="Tipo", editable=False, width=130)
-        gb.configure_column("dosis", headerName="Dosis", editable=False, width=180)
-        gb.configure_column("cultivos", headerName="Cultivos", editable=False, width=220)
-        gb.configure_column("problema", headerName="Problema", editable=False, width=230)
-        gb.configure_column("ingrediente", headerName="Ingrediente activo", editable=False, width=220)
-        gb.configure_column("grupo", headerName="Grupo", editable=False, width=130)
-        gb.configure_column("carencia", headerName="Carencia", editable=False, width=230)
-        gb.configure_column("reingreso", headerName="Reingreso", editable=False, width=140)
-        gb.configure_column("toxicidad_abejas", headerName="Abejas", editable=False, width=230)
-        gb.configure_column("pdf", headerName="PDF", editable=False, width=260)
-
-        gb.configure_column(
-            "Eliminar",
-            headerName="Eliminar",
-            editable=True,
-            cellRenderer="agCheckboxCellRenderer",
-            cellEditor="agCheckboxCellEditor",
-            pinned="right",
-            width=120
-        )
-
-        grid_options = gb.build()
-        grid_options["rowHeight"] = 38
-        grid_options["headerHeight"] = 42
-
-        grid_response = AgGrid(
-            df_mostrar,
-            gridOptions=grid_options,
-            update_mode=GridUpdateMode.VALUE_CHANGED,
-            height=430,
-            use_container_width=True,
-            fit_columns_on_grid_load=False,
-            allow_unsafe_jscode=True
-        )
-
-        datos_editados = pd.DataFrame(grid_response["data"])
-
-        productos_eliminar = datos_editados[
-            datos_editados["Eliminar"] == True
-        ]
-
-        if not productos_eliminar.empty:
-            st.warning(f"{len(productos_eliminar)} producto(s) marcado(s) para eliminar")
-
-            if st.button("Eliminar marcados"):
-                for _, fila in productos_eliminar.iterrows():
-                    eliminar_producto(int(fila["id"]))
-
-                st.success("Producto(s) eliminado(s)")
-                st.rerun()
 
 if False:
     # Pantalla antigua Manual de uso desactivada para dejar solo dos pantallas visibles.

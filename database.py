@@ -164,6 +164,86 @@ def subir_pdf_storage(
 
 
 
+
+def eliminar_pdf_storage(
+    referencia_pdf,
+    bucket_predeterminado="pdfs-productos"
+):
+    from urllib.parse import quote, unquote, urlparse
+
+    if referencia_pdf is None:
+        return False
+
+    referencia = str(referencia_pdf).strip()
+
+    if referencia == "" or referencia.lower() == "nan":
+        return False
+
+    bucket = bucket_predeterminado
+    ruta_archivo = referencia
+
+    if referencia.startswith(("http://", "https://")):
+        ruta_url = unquote(urlparse(referencia).path)
+        prefijo_publico = "/storage/v1/object/public/"
+        prefijo_privado = "/storage/v1/object/"
+
+        if prefijo_publico in ruta_url:
+            resto = ruta_url.split(
+                prefijo_publico,
+                1
+            )[1]
+        elif prefijo_privado in ruta_url:
+            resto = ruta_url.split(
+                prefijo_privado,
+                1
+            )[1]
+        else:
+            return False
+
+        if "/" not in resto:
+            return False
+
+        bucket, ruta_archivo = resto.split("/", 1)
+
+    ruta_archivo = ruta_archivo.lstrip("/")
+
+    if not ruta_archivo:
+        return False
+
+    url, key = _obtener_configuracion()
+
+    ruta_codificada = quote(
+        ruta_archivo,
+        safe="/"
+    )
+
+    endpoint = (
+        f"{url}/storage/v1/object/"
+        f"{bucket}/{ruta_codificada}"
+    )
+
+    respuesta = requests.delete(
+        endpoint,
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+        },
+        timeout=120,
+    )
+
+    # Si el archivo ya no existe, se considera eliminado.
+    if respuesta.status_code == 404:
+        return False
+
+    _verificar_respuesta(
+        respuesta,
+        "eliminar el PDF de Supabase Storage"
+    )
+
+    return True
+
+
+
 # -------------------------------------------------------------------
 # PRODUCTOS
 # -------------------------------------------------------------------

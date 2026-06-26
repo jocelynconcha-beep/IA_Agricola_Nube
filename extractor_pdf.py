@@ -122,6 +122,7 @@ def extraer_usos_pdf(path):
 
             indices = indices_tabla_uso(filas[encabezado_indice])
             cultivo_actual = ""
+            problema_actual = ""
             dosis_actual = ""
             observacion_actual = ""
 
@@ -135,6 +136,11 @@ def extraer_usos_pdf(path):
                     cultivo_actual = cultivo
                 else:
                     cultivo = cultivo_actual
+
+                if problema:
+                    problema_actual = problema
+                else:
+                    problema = problema_actual
 
                 if dosis and re.search(r"\d", dosis):
                     dosis_actual = dosis
@@ -886,3 +892,156 @@ def detectar_incompatibilidad(texto):
         return ""
 
     return valor_anterior
+
+
+# ==============================================================
+# MEJORAS PARA ETIQUETAS CON TABLAS COMBINADAS Y HERBICIDAS
+# ==============================================================
+
+_detectar_producto_previo = detectar_producto
+_detectar_grupo_previo = detectar_grupo
+_detectar_carencia_previa = detectar_carencia
+_detectar_toxicidad_abejas_previa = detectar_toxicidad_abejas
+
+
+def detectar_producto(texto, nombre_archivo=""):
+    patrones = [
+        r"(?im)^\s*([A-ZÁÉÍÓÚÜÑ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9®™' -]{2,40})\s*$"
+        r"(?=\s*(?:Herbicida|Fungicida|Insecticida|Acaricida))",
+
+        r"(?i)Nombre\s+comercial(?:\s+del\s+producto\s+químico)?\s*[:\-]?\s*"
+        r"([A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9®™' -]{2,50})",
+    ]
+
+    for patron in patrones:
+        coincidencia = re.search(patron, texto)
+
+        if coincidencia:
+            producto = _limpiar_texto_extraido(
+                coincidencia.group(1)
+            )
+
+            producto = producto.replace("®", "").replace("™", "")
+            producto = re.sub(r"\s+", " ", producto).strip()
+
+            palabras_invalidas = {
+                "precauciones y advertencias",
+                "instrucciones de uso",
+                "composición",
+                "herbicida",
+                "fungicida",
+                "insecticida"
+            }
+
+            if producto.casefold() not in palabras_invalidas:
+                return producto
+
+    return _detectar_producto_previo(
+        texto,
+        nombre_archivo
+    )
+
+
+def detectar_grupo(texto):
+    patrones = [
+        r"pertenece\s+al\s+grupo\s+qu[íi]mico\s+"
+        r"(?:de\s+los?|de\s+las?|)\s*"
+        r"([A-Za-zÁÉÍÓÚÜÑáéíóúüñ\-]+)",
+
+        r"clasificaci[óo]n\s+HRAC(?:/WSSA)?[^.]{0,80}?"
+        r"grupo\s+([0-9A-Za-z]+)",
+
+        r"\bHRAC\s*[:\-]?\s*([0-9A-Za-z]+)",
+    ]
+
+    resultados = []
+
+    for patron in patrones:
+        for valor in re.findall(
+            patron,
+            texto,
+            flags=re.IGNORECASE
+        ):
+            valor = _limpiar_texto_extraido(valor)
+
+            if valor:
+                resultados.append(valor)
+
+    resultados = _unicos_en_orden(resultados)
+
+    grupo_quimico = ""
+    grupo_hrac = ""
+
+    for resultado in resultados:
+        if re.fullmatch(r"[0-9A-Za-z]+", resultado):
+            grupo_hrac = resultado
+        else:
+            grupo_quimico = resultado
+
+    if grupo_hrac and grupo_quimico:
+        return f"HRAC {grupo_hrac}; {grupo_quimico}"
+
+    if grupo_hrac:
+        return f"HRAC {grupo_hrac}"
+
+    if grupo_quimico:
+        return grupo_quimico
+
+    return _detectar_grupo_previo(texto)
+
+
+def detectar_carencia(texto):
+    coincidencia = re.search(
+        r"Per[íi]odos?\s+de\s+carencias?\s*:\s*(.+?)"
+        r"(?=\s*Tiempo\s+de\s+reingreso\s*:|"
+        r"\s*Reingreso\s*:|"
+        r"\s*Nota\b|$)",
+        texto,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    if coincidencia:
+        valor = _limpiar_texto_extraido(
+            coincidencia.group(1)
+        )
+
+        if valor:
+            return valor
+
+    return _detectar_carencia_previa(texto)
+
+
+def detectar_toxicidad_abejas(texto):
+    texto_simple = _limpiar_texto_extraido(texto)
+
+    patrones_baja = [
+        r"no\s+es\s+peligroso\s+para\s+las\s+abejas",
+        r"no\s+es\s+t[óo]xico\s+para\s+las\s+abejas",
+        r"virtualmente\s+no\s+t[óo]xico\s+para\s+abejas",
+    ]
+
+    for patron in patrones_baja:
+        if re.search(
+            patron,
+            texto_simple,
+            flags=re.IGNORECASE
+        ):
+            return "No es peligroso para las abejas"
+
+    patrones_alta = [
+        r"muy\s+t[óo]xico\s+para\s+abejas",
+        r"altamente\s+t[óo]xico\s+para\s+abejas",
+        r"t[óo]xico\s+para\s+abejas",
+    ]
+
+    for patron in patrones_alta:
+        coincidencia = re.search(
+            patron,
+            texto_simple,
+            flags=re.IGNORECASE
+        )
+
+        if coincidencia:
+            return coincidencia.group(0).capitalize()
+
+    return _detectar_toxicidad_abejas_previa(texto)
