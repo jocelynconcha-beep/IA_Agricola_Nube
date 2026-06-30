@@ -3518,7 +3518,8 @@ def tabla_base_datos_mockup(df, filas_visibles=7):
     if df.empty:
         return
 
-    filas_html = []
+    filas_tabla_html = []
+    tarjetas_movil_html = []
 
     for _, fila in df.iterrows():
         nombre = escapar_html(
@@ -3537,28 +3538,60 @@ def tabla_base_datos_mockup(df, filas_visibles=7):
             )
         )
 
-        tipo = escapar_html(
-            valor_o_sin_info(
-                fila.get("tipo", "")
-            )
+        tipo_texto = valor_o_sin_info(
+            fila.get("tipo", "")
         )
+
+        tipo = escapar_html(tipo_texto)
 
         clase_tipo = clase_tipo_producto(
             fila.get("tipo", "")
         )
 
-        filas_html.append(f"""
+        emoji = emoji_tipo_producto(
+            fila.get("tipo", "")
+        )
+
+        filas_tabla_html.append(f"""
         <div class="base-table-row">
             <div class="base-table-cell base-product-cell">
-                <span class="base-product-icon {clase_tipo}"></span>
+                <span class="base-product-icon {clase_tipo}">
+                    {emoji}
+                </span>
                 <span>{nombre}</span>
             </div>
+
             <div class="base-table-cell">{ingrediente}</div>
+
             <div class="base-table-cell">{grupo}</div>
+
             <div class="base-table-cell">
                 <span class="base-type-pill {clase_tipo}">
                     {tipo}
                 </span>
+            </div>
+        </div>
+        """)
+
+        tarjetas_movil_html.append(f"""
+        <div class="base-mobile-card">
+            <div class="base-mobile-icon {clase_tipo}">
+                {emoji}
+            </div>
+
+            <div class="base-mobile-content">
+                <div class="base-mobile-name">
+                    {nombre}
+                </div>
+
+                <div class="base-mobile-ingredient">
+                    {ingrediente}
+                </div>
+
+                <div class="base-mobile-meta">
+                    <span>{tipo}</span>
+                    <span>{grupo}</span>
+                </div>
             </div>
         </div>
         """)
@@ -3597,10 +3630,6 @@ def tabla_base_datos_mockup(df, filas_visibles=7):
             border-radius: 10px;
         }
 
-        .base-table-scroll-body::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-
         .base-table-count {
             padding: 6px 14px 8px 14px;
             color: #64748b;
@@ -3610,14 +3639,108 @@ def tabla_base_datos_mockup(df, filas_visibles=7):
             background: #fafcfd;
         }
 
+        .base-mobile-list {
+            display: none;
+        }
+
+        .base-product-icon {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 12px !important;
+            background: #eef8f2 !important;
+            font-size: 1.25rem !important;
+            flex: 0 0 auto !important;
+        }
+
+        .base-product-icon::before,
+        .base-product-icon::after {
+            display: none !important;
+            content: none !important;
+        }
+
         @media screen and (max-width: 700px) {
-            .base-table-scroll-body {
-                max-height: 350px;
-                overflow-x: auto;
+            .base-table-card-scroll {
+                display: none !important;
             }
 
-            .base-table-card-scroll {
+            .base-mobile-list {
+                display: grid !important;
+                gap: 9px !important;
+            }
+
+            .base-mobile-card {
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 10px;
+                align-items: start;
+                padding: 11px;
+                border: 1px solid #dbe3ec;
+                border-radius: 16px;
+                background: #ffffff;
+                box-shadow: 0 5px 14px rgba(15, 23, 42, 0.05);
+            }
+
+            .base-mobile-icon {
+                width: 40px;
+                height: 40px;
                 border-radius: 14px;
+                background: #eef8f2;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.35rem;
+            }
+
+            .base-mobile-content {
+                min-width: 0;
+            }
+
+            .base-mobile-name {
+                font-size: 0.96rem;
+                font-weight: 900;
+                color: #0f172a;
+                line-height: 1.15;
+                overflow-wrap: anywhere;
+            }
+
+            .base-mobile-ingredient {
+                margin-top: 3px;
+                color: #64748b;
+                font-size: 0.76rem;
+                line-height: 1.25;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .base-mobile-meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                margin-top: 7px;
+            }
+
+            .base-mobile-meta span {
+                display: inline-flex;
+                border-radius: 999px;
+                background: #edf7f1;
+                color: #17663d;
+                padding: 4px 8px;
+                font-size: 0.7rem;
+                font-weight: 800;
+                max-width: 100%;
+                overflow-wrap: anywhere;
+            }
+
+            .base-table-count {
+                text-align: center;
+                border: 1px solid #edf1f5;
+                border-radius: 12px;
+                margin-top: 8px;
             }
         }
     </style>
@@ -3632,8 +3755,16 @@ def tabla_base_datos_mockup(df, filas_visibles=7):
             </div>
 
             <div class="base-table-scroll-body">
-                __FILAS__
+                __FILAS_TABLA__
             </div>
+
+            <div class="base-table-count">
+                __CANTIDAD__ producto(s) guardado(s)
+            </div>
+        </div>
+
+        <div class="base-mobile-list">
+            __TARJETAS_MOVIL__
 
             <div class="base-table-count">
                 __CANTIDAD__ producto(s) guardado(s)
@@ -3643,8 +3774,13 @@ def tabla_base_datos_mockup(df, filas_visibles=7):
     """
 
     html_tabla = html_tabla.replace(
-        "__FILAS__",
-        "".join(filas_html)
+        "__FILAS_TABLA__",
+        "".join(filas_tabla_html)
+    )
+
+    html_tabla = html_tabla.replace(
+        "__TARJETAS_MOVIL__",
+        "".join(tarjetas_movil_html)
     )
 
     html_tabla = html_tabla.replace(
@@ -3653,6 +3789,7 @@ def tabla_base_datos_mockup(df, filas_visibles=7):
     )
 
     st.html(textwrap.dedent(html_tabla))
+
 
 
 
