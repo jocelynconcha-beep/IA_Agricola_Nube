@@ -2947,6 +2947,32 @@ def filtrar_modo_terreno(
     return df_filtrado
 
 
+
+def emoji_tipo_producto(tipo):
+    texto = limpiar_valor(tipo).lower()
+
+    if "herbicida" in texto:
+        return "🌿"
+
+    if "fungicida" in texto and "insecticida" in texto:
+        return "🌱"
+
+    if "fungicida" in texto:
+        return "🍄"
+
+    if "insecticida" in texto:
+        return "🐛"
+
+    if "acaricida" in texto:
+        return "🕷️"
+
+    if "bactericida" in texto:
+        return "🦠"
+
+    return "🧪"
+
+
+
 def tarjeta_producto_modo_terreno(fila, columna_malezas=None):
     nombre = valor_o_sin_info(fila.get("nombre", ""))
     tipo = valor_o_sin_info(fila.get("tipo", ""))
@@ -3153,6 +3179,333 @@ st.markdown(
 
         .base-table-scroll-body {
             overflow-x: auto !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Iconos bonitos por tipo de producto
+st.markdown(
+    """
+    <style>
+    .modo-terreno-product-icon,
+    .base-product-icon {
+        position: relative !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: visible !important;
+    }
+
+    .modo-terreno-product-icon::before,
+    .base-product-icon::before {
+        position: absolute;
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .modo-terreno-product-icon.herbicida::before,
+    .base-product-icon.herbicida::before {
+        content: "🌿";
+    }
+
+    .modo-terreno-product-icon.fungicida::before,
+    .base-product-icon.fungicida::before {
+        content: "🍄";
+    }
+
+    .modo-terreno-product-icon.insecticida::before,
+    .base-product-icon.insecticida::before {
+        content: "🐛";
+    }
+
+    .modo-terreno-product-icon.acaricida::before,
+    .base-product-icon.acaricida::before {
+        content: "🕷️";
+    }
+
+    .modo-terreno-product-icon.bactericida::before,
+    .base-product-icon.bactericida::before {
+        content: "🦠";
+    }
+
+    .modo-terreno-product-icon.fungicida-insecticida::before,
+    .base-product-icon.fungicida-insecticida::before {
+        content: "🌱";
+    }
+
+    .modo-terreno-product-icon.otro::before,
+    .base-product-icon.otro::before {
+        content: "🧪";
+    }
+
+    @media screen and (max-width: 600px) {
+        .modo-terreno-product-icon::before,
+        .base-product-icon::before {
+            font-size: 1.25rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Ajustes móviles simples
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 700px) {
+
+        /* Evita que cualquier bloque se salga de la pantalla */
+        html, body, [data-testid="stAppViewContainer"] {
+            overflow-x: hidden !important;
+        }
+
+        .block-container {
+            padding-left: 0.65rem !important;
+            padding-right: 0.65rem !important;
+            max-width: 100% !important;
+        }
+
+        /* Botones de Streamlit en teléfono */
+        .stButton > button,
+        .stDownloadButton > button,
+        a[data-testid="stBaseButton-secondary"],
+        a[data-testid="stLinkButton"] {
+            width: 100% !important;
+            min-height: 42px !important;
+            font-size: 0.86rem !important;
+            border-radius: 12px !important;
+        }
+
+        /* Selectores más cómodos */
+        div[data-baseweb="select"] {
+            width: 100% !important;
+        }
+
+        /* Expander más compacto */
+        details {
+            border-radius: 12px !important;
+        }
+
+        details summary {
+            font-size: 0.9rem !important;
+            font-weight: 800 !important;
+        }
+
+        /* Ficha técnica compacta móvil */
+        .ficha-compacta {
+            padding: 10px !important;
+            border-radius: 16px !important;
+        }
+
+        .ficha-producto {
+            gap: 8px !important;
+        }
+
+        .ficha-titulo {
+            font-size: 1.12rem !important;
+            line-height: 1.12 !important;
+        }
+
+        .ficha-subtitulo {
+            font-size: 0.78rem !important;
+        }
+
+        .ficha-abejas-badge {
+            font-size: 0.72rem !important;
+            padding: 7px 9px !important;
+        }
+
+        .ficha-resumen {
+            grid-template-columns: 1fr !important;
+            width: 100% !important;
+        }
+
+        .ficha-item {
+            padding: 9px 10px !important;
+            border-right: 0 !important;
+            border-bottom: 1px solid #e4eaf0 !important;
+        }
+
+        .ficha-item:last-child {
+            border-bottom: 0 !important;
+        }
+
+        .ficha-item-titulo {
+            font-size: 0.78rem !important;
+        }
+
+        .ficha-item-valor {
+            font-size: 0.76rem !important;
+        }
+
+        .ficha-detalles {
+            grid-template-columns: 1fr !important;
+        }
+
+        .ficha-footer {
+            font-size: 0.72rem !important;
+            line-height: 1.3 !important;
+        }
+
+        /* Base de datos: evita que se rompa en celular */
+        .base-table-scroll,
+        .base-table-wrapper,
+        .base-table-container {
+            overflow-x: auto !important;
+            max-width: 100% !important;
+        }
+
+        .base-table-head,
+        .base-table-row {
+            min-width: 640px !important;
+        }
+
+        /* Tarjetas de productos modo terreno */
+        .modo-terreno-product-row-link {
+            grid-template-columns: 36px 1fr !important;
+            gap: 8px !important;
+            padding: 9px !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(3),
+        .modo-terreno-product-row-link > div:nth-child(4),
+        .modo-terreno-product-row-link > div:nth-child(5) {
+            grid-column: 2 / 3 !important;
+        }
+
+        .modo-terreno-product-name-box {
+            font-size: 0.9rem !important;
+            line-height: 1.15 !important;
+        }
+
+        .modo-terreno-product-name-meta {
+            font-size: 0.74rem !important;
+        }
+
+        .modo-terreno-product-icon {
+            width: 32px !important;
+            height: 32px !important;
+        }
+
+        /* PDF dentro de la app más bajo en teléfono */
+        iframe {
+            max-width: 100% !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Tarjetas móviles más simples y compactas
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 700px) {
+
+        .modo-terreno-product-row-link {
+            display: grid !important;
+            grid-template-columns: 46px 1fr auto !important;
+            gap: 8px 10px !important;
+            align-items: center !important;
+            padding: 11px !important;
+            border-radius: 18px !important;
+            min-height: 0 !important;
+        }
+
+        .modo-terreno-product-icon-cell {
+            grid-column: 1 / 2 !important;
+            grid-row: 1 / 4 !important;
+            align-self: start !important;
+        }
+
+        .modo-terreno-product-icon {
+            width: 42px !important;
+            height: 42px !important;
+            border-radius: 14px !important;
+            border: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 1.45rem !important;
+            background: #eef8f2 !important;
+            box-shadow: none !important;
+        }
+
+        .modo-terreno-product-icon::before,
+        .modo-terreno-product-icon::after {
+            display: none !important;
+            content: none !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(2) {
+            grid-column: 2 / 4 !important;
+            grid-row: 1 / 2 !important;
+            min-width: 0 !important;
+        }
+
+        .modo-terreno-product-name-box {
+            font-size: 0.98rem !important;
+            line-height: 1.15 !important;
+            font-weight: 900 !important;
+            margin-bottom: 3px !important;
+        }
+
+        .modo-terreno-product-name-meta {
+            font-size: 0.78rem !important;
+            line-height: 1.25 !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(3) {
+            grid-column: 2 / 3 !important;
+            grid-row: 2 / 3 !important;
+        }
+
+        .modo-terreno-pill {
+            display: inline-flex !important;
+            width: auto !important;
+            font-size: 0.74rem !important;
+            padding: 5px 10px !important;
+            margin: 2px 0 !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(4) {
+            grid-column: 2 / 3 !important;
+            grid-row: 3 / 4 !important;
+            font-size: 0.74rem !important;
+            line-height: 1.2 !important;
+            min-width: 0 !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(5) {
+            grid-column: 3 / 4 !important;
+            grid-row: 2 / 4 !important;
+            align-self: center !important;
+            justify-self: end !important;
+        }
+
+        .modo-terreno-bee {
+            font-size: 0.72rem !important;
+            padding: 5px 8px !important;
+            white-space: nowrap !important;
+        }
+
+        .modo-terreno-lista-meta strong {
+            font-size: 0.72rem !important;
         }
     }
     </style>
@@ -3438,7 +3791,7 @@ def lista_compacta_modo_terreno(df, columna_malezas=None, limite=12):
                 <div class="modo-terreno-product-click-row-marker"></div>
                 <div class="modo-terreno-product-row-link">
                     <div class="modo-terreno-product-icon-cell">
-                        <div class="modo-terreno-product-icon {html.escape(clase_tipo)}"></div>
+                        <div class="modo-terreno-product-icon {html.escape(clase_tipo)}">{emoji_tipo_producto(tipo)}</div>
                     </div>
                     <div>
                         <div class="modo-terreno-product-name-box">{html.escape(nombre)}</div>
@@ -5252,130 +5605,148 @@ with tab_modo_terreno:
                             )
 
                         if pdf_terreno_bytes:
-                            with st.expander("Ver PDF de respaldo"):
-                                mostrar_pdf_bytes(pdf_terreno_bytes)
+                            col_pdf_zoom, col_pdf_descarga = st.columns(2)
 
-                            st.download_button(
-                                label="Descargar PDF de respaldo",
-                                data=pdf_terreno_bytes,
-                                file_name=nombre_pdf_terreno,
-                                mime="application/pdf",
-                                key=f"modo_terreno_pdf_{fila_ficha_terreno['id']}"
-                            )
+                            with col_pdf_zoom:
+                                if str(pdf_terreno).startswith(("http://", "https://")):
+                                    st.link_button(
+                                        "🔍 Abrir PDF con zoom",
+                                        pdf_terreno,
+                                        use_container_width=True
+                                    )
+                                else:
+                                    st.button(
+                                        "🔍 Abrir PDF con zoom",
+                                        disabled=True,
+                                        use_container_width=True,
+                                        help="Disponible para PDF guardados en Supabase."
+                                    )
+
+                            with col_pdf_descarga:
+                                st.download_button(
+                                    label="⬇️ Descargar PDF",
+                                    data=pdf_terreno_bytes,
+                                    file_name=nombre_pdf_terreno,
+                                    mime="application/pdf",
+                                    key=f"modo_terreno_pdf_{fila_ficha_terreno['id']}",
+                                    use_container_width=True
+                                )
+
+                            with st.expander("Ver PDF dentro de la app"):
+                                mostrar_pdf_bytes(
+                                    pdf_terreno_bytes,
+                                    alto=480
+                                )
                         else:
                             st.caption("PDF de respaldo no disponible.")
 
-                st.divider()
+                with st.expander(
+                    "🧪 Revisar compatibilidad de mezcla",
+                    expanded=False
+                ):
+                    opciones_compat_terreno = {}
 
-                opciones_compat_terreno = {}
+                    for _, fila in df_terreno.iterrows():
+                        nombre_compat = limpiar_valor(
+                            fila.get("nombre", "")
+                        )
+                        tipo_compat = limpiar_valor(
+                            fila.get("tipo", "")
+                        )
+                        producto_id_compat = limpiar_valor(
+                            fila.get("id", "")
+                        )
 
-                for _, fila in df_terreno.iterrows():
-                    nombre_compat = limpiar_valor(fila.get("nombre", ""))
-                    tipo_compat = limpiar_valor(fila.get("tipo", ""))
-                    producto_id_compat = limpiar_valor(fila.get("id", ""))
+                        etiqueta = (
+                            f"{nombre_compat} | {tipo_compat} | "
+                            f"ID {producto_id_compat}"
+                        )
 
-                    etiqueta = (
-                        f"{nombre_compat} | {tipo_compat} | "
-                        f"ID {producto_id_compat}"
+                        opciones_compat_terreno[etiqueta] = fila
+
+                    st.caption(
+                        "Selecciona 2 a 4 productos para revisar si "
+                        "conviene mezclarlos."
                     )
 
-                    opciones_compat_terreno[etiqueta] = fila
+                    opciones_selector_compat = [
+                        "Seleccionar producto"
+                    ] + list(opciones_compat_terreno.keys())
 
-                st.markdown("### Compatibilidad")
-                st.caption(
-                    "Selecciona entre 2 y 4 productos para revisar la "
-                    "información disponible en sus etiquetas."
-                )
-
-                opciones_selector_compat = [
-                    "Seleccionar producto"
-                ] + list(opciones_compat_terreno.keys())
-
-                fila_compat_1, fila_compat_2 = st.columns(2)
-
-                with fila_compat_1:
                     compat_producto_1 = st.selectbox(
                         "Producto 1",
                         opciones_selector_compat,
                         key="compat_producto_1"
                     )
 
-                with fila_compat_2:
                     compat_producto_2 = st.selectbox(
                         "Producto 2",
                         opciones_selector_compat,
                         key="compat_producto_2"
                     )
 
-                fila_compat_3, fila_compat_4 = st.columns(2)
+                    with st.expander(
+                        "Agregar producto 3 y 4 opcional",
+                        expanded=False
+                    ):
+                        compat_producto_3 = st.selectbox(
+                            "Producto 3",
+                            opciones_selector_compat,
+                            key="compat_producto_3"
+                        )
 
-                with fila_compat_3:
-                    compat_producto_3 = st.selectbox(
-                        "Producto 3 (opcional)",
-                        opciones_selector_compat,
-                        key="compat_producto_3"
-                    )
+                        compat_producto_4 = st.selectbox(
+                            "Producto 4",
+                            opciones_selector_compat,
+                            key="compat_producto_4"
+                        )
 
-                with fila_compat_4:
-                    compat_producto_4 = st.selectbox(
-                        "Producto 4 (opcional)",
-                        opciones_selector_compat,
-                        key="compat_producto_4"
-                    )
-
-                productos_compatibles_labels = [
-                    etiqueta
-                    for etiqueta in [
-                        compat_producto_1,
-                        compat_producto_2,
-                        compat_producto_3,
-                        compat_producto_4
-                    ]
-                    if etiqueta != "Seleccionar producto"
-                ]
-
-                # Evitar que un mismo producto se compare consigo mismo.
-                productos_compatibles_labels = list(
-                    dict.fromkeys(productos_compatibles_labels)
-                )
-
-                compatibilidad_slots_modo_terreno(
-                    productos_compatibles_labels
-                )
-
-                if len(productos_compatibles_labels) < 2:
-                    st.info(
-                        "Selecciona al menos 2 productos diferentes "
-                        "para evaluar la compatibilidad."
-                    )
-
-                    compatibilidad_resultado_modo_terreno(
-                        productos_compatibles_labels,
-                        []
-                    )
-                else:
-                    filas_compatibilidad = [
-                        opciones_compat_terreno[etiqueta]
-                        for etiqueta in productos_compatibles_labels
+                    productos_compatibles_labels = [
+                        etiqueta
+                        for etiqueta in [
+                            compat_producto_1,
+                            compat_producto_2,
+                            compat_producto_3,
+                            compat_producto_4
+                        ]
+                        if etiqueta != "Seleccionar producto"
                     ]
 
-                    try:
-                        resultados_compatibilidad = (
-                            evaluar_compatibilidad_seleccion(
-                                filas_compatibilidad
+                    productos_compatibles_labels = list(
+                        dict.fromkeys(productos_compatibles_labels)
+                    )
+
+                    if len(productos_compatibles_labels) < 2:
+                        st.info(
+                            "Selecciona al menos 2 productos diferentes."
+                        )
+                    else:
+                        compatibilidad_slots_modo_terreno(
+                            productos_compatibles_labels
+                        )
+
+                        filas_compatibilidad = [
+                            opciones_compat_terreno[etiqueta]
+                            for etiqueta in productos_compatibles_labels
+                        ]
+
+                        try:
+                            resultados_compatibilidad = (
+                                evaluar_compatibilidad_seleccion(
+                                    filas_compatibilidad
+                                )
                             )
-                        )
 
-                        compatibilidad_resultado_modo_terreno(
-                            productos_compatibles_labels,
-                            resultados_compatibilidad
-                        )
+                            compatibilidad_resultado_modo_terreno(
+                                productos_compatibles_labels,
+                                resultados_compatibilidad
+                            )
 
-                    except Exception as error:
-                        st.error(
-                            "No fue posible evaluar la compatibilidad: "
-                            f"{error}"
-                        )
+                        except Exception as error:
+                            st.error(
+                                "No fue posible evaluar la compatibilidad: "
+                                f"{error}"
+                            )
 
             st.divider()
             botones_finales_modo_terreno()
