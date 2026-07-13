@@ -4761,102 +4761,114 @@ def compatibilidad_resultado_modo_terreno(productos_labels, resultados):
 
 def botones_finales_modo_terreno():
     html_botones = """
-    <div style="
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 18px;
-        margin-top: 26px;
-        margin-bottom: 26px;
-    ">
+    <style>
+        .acciones-finales-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 26px;
+            margin-bottom: 26px;
+        }
 
-        <a href="?accion_modo_terreno=cargar_pdf" target="_self" style="
+        .accion-final-card {
             text-decoration: none;
+            color: white !important;
+            border-radius: 22px;
+            padding: 20px 22px;
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-size: 0.98rem;
+            font-weight: 750;
+            letter-spacing: 0.1px;
+            border: 1px solid rgba(255,255,255,0.42);
+        }
+
+        .accion-final-card span {
+            color: white !important;
+        }
+
+        .accion-final-icon {
+            min-width: 38px;
+            width: 38px;
+            height: 38px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.22);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.22rem;
+        }
+
+        .accion-final-text {
+            line-height: 1.15;
+            text-align: left;
+        }
+
+        .accion-pdf {
             background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
-            color: white;
-            border-radius: 22px;
-            padding: 20px 22px;
-            min-height: 76px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            font-size: 0.98rem;
-            font-weight: 750;
-            letter-spacing: 0.1px;
-            box-shadow: 0 12px 26px rgba(22, 163, 74, 0.22);
-            border: 1px solid rgba(255,255,255,0.42);
-        ">
-            <span style="
-                width: 38px;
-                height: 38px;
-                border-radius: 14px;
-                background: rgba(255,255,255,0.22);
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.28rem;
-            ">📄</span>
-            <span style="line-height: 1.15;">Cargar etiqueta<br>PDF</span>
-        </a>
+            box-shadow: 0 12px 26px rgba(22, 163, 74, 0.20);
+        }
 
-        <a href="?accion_modo_terreno=experiencia" target="_self" style="
-            text-decoration: none;
+        .accion-campo {
             background: linear-gradient(135deg, #0f766e 0%, #2dd4bf 100%);
-            color: white;
-            border-radius: 22px;
-            padding: 20px 22px;
-            min-height: 76px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            font-size: 0.98rem;
-            font-weight: 750;
-            letter-spacing: 0.1px;
-            box-shadow: 0 12px 26px rgba(20, 184, 166, 0.22);
-            border: 1px solid rgba(255,255,255,0.42);
-        ">
-            <span style="
-                width: 38px;
-                height: 38px;
-                border-radius: 14px;
-                background: rgba(255,255,255,0.22);
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.28rem;
-            ">🌾</span>
-            <span style="line-height: 1.15;">Registrar<br>experiencia</span>
+            box-shadow: 0 12px 26px rgba(20, 184, 166, 0.20);
+        }
+
+        .accion-db {
+            background: linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%);
+            box-shadow: 0 12px 26px rgba(37, 99, 235, 0.20);
+        }
+
+        @media (max-width: 700px) {
+            .acciones-finales-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                margin-top: 22px;
+                margin-bottom: 22px;
+            }
+
+            .accion-final-card {
+                min-height: 62px;
+                padding: 14px 16px;
+                border-radius: 18px;
+                justify-content: flex-start;
+                font-size: 0.94rem;
+                font-weight: 750;
+            }
+
+            .accion-final-icon {
+                min-width: 34px;
+                width: 34px;
+                height: 34px;
+                border-radius: 12px;
+                font-size: 1.05rem;
+            }
+
+            .accion-final-text {
+                text-align: left;
+                line-height: 1.1;
+            }
+        }
+    </style>
+
+    <div class="acciones-finales-grid">
+
+        <a class="accion-final-card accion-pdf" href="?accion_modo_terreno=cargar_pdf" target="_self">
+            <span class="accion-final-icon">📄</span>
+            <span class="accion-final-text">Cargar etiqueta PDF</span>
         </a>
 
-        <a href="?accion_modo_terreno=base_datos" target="_self" style="
-            text-decoration: none;
-            background: linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%);
-            color: white;
-            border-radius: 22px;
-            padding: 20px 22px;
-            min-height: 76px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            font-size: 0.98rem;
-            font-weight: 750;
-            letter-spacing: 0.1px;
-            box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
-            border: 1px solid rgba(255,255,255,0.42);
-        ">
-            <span style="
-                width: 38px;
-                height: 38px;
-                border-radius: 14px;
-                background: rgba(255,255,255,0.22);
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.28rem;
-            ">🗂️</span>
-            <span style="line-height: 1.15;">Ver base<br>agrícola</span>
+        <a class="accion-final-card accion-campo" href="?accion_modo_terreno=experiencia" target="_self">
+            <span class="accion-final-icon">🌾</span>
+            <span class="accion-final-text">Registrar experiencia</span>
+        </a>
+
+        <a class="accion-final-card accion-db" href="?accion_modo_terreno=base_datos" target="_self">
+            <span class="accion-final-icon">🗂️</span>
+            <span class="accion-final-text">Ver base agrícola</span>
         </a>
 
     </div>
