@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 import pandas as pd
 import requests
@@ -113,6 +114,137 @@ def crear_tabla_experiencias_campo():
 
 
 # -------------------------------------------------------------------
+# SUPABASE STORAGE
+# -------------------------------------------------------------------
+
+def subir_pdf_storage(
+    nombre_archivo,
+    pdf_bytes,
+    bucket="pdfs-productos"
+):
+    if not pdf_bytes:
+        raise ValueError("El PDF está vacío.")
+
+    nombre = str(nombre_archivo).strip()
+
+    if not nombre:
+        raise ValueError("El PDF no tiene nombre.")
+
+    url, key = _obtener_configuracion()
+
+    nombre_codificado = quote(nombre, safe="")
+    endpoint = (
+        f"{url}/storage/v1/object/"
+        f"{bucket}/{nombre_codificado}"
+    )
+
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/pdf",
+        "x-upsert": "true",
+    }
+
+    respuesta = requests.post(
+        endpoint,
+        headers=headers,
+        data=pdf_bytes,
+        timeout=120,
+    )
+
+    _verificar_respuesta(
+        respuesta,
+        "subir el PDF a Supabase Storage"
+    )
+
+    return (
+        f"{url}/storage/v1/object/public/"
+        f"{bucket}/{nombre_codificado}"
+    )
+
+
+
+
+def eliminar_pdf_storage(
+    referencia_pdf,
+    bucket_predeterminado="pdfs-productos"
+):
+    from urllib.parse import quote, unquote, urlparse
+
+    if referencia_pdf is None:
+        return False
+
+    referencia = str(referencia_pdf).strip()
+
+    if referencia == "" or referencia.lower() == "nan":
+        return False
+
+    bucket = bucket_predeterminado
+    ruta_archivo = referencia
+
+    if referencia.startswith(("http://", "https://")):
+        ruta_url = unquote(urlparse(referencia).path)
+        prefijo_publico = "/storage/v1/object/public/"
+        prefijo_privado = "/storage/v1/object/"
+
+        if prefijo_publico in ruta_url:
+            resto = ruta_url.split(
+                prefijo_publico,
+                1
+            )[1]
+        elif prefijo_privado in ruta_url:
+            resto = ruta_url.split(
+                prefijo_privado,
+                1
+            )[1]
+        else:
+            return False
+
+        if "/" not in resto:
+            return False
+
+        bucket, ruta_archivo = resto.split("/", 1)
+
+    ruta_archivo = ruta_archivo.lstrip("/")
+
+    if not ruta_archivo:
+        return False
+
+    url, key = _obtener_configuracion()
+
+    ruta_codificada = quote(
+        ruta_archivo,
+        safe="/"
+    )
+
+    endpoint = (
+        f"{url}/storage/v1/object/"
+        f"{bucket}/{ruta_codificada}"
+    )
+
+    respuesta = requests.delete(
+        endpoint,
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+        },
+        timeout=120,
+    )
+
+    # Si el archivo ya no existe, se considera eliminado.
+    if respuesta.status_code == 404:
+        return False
+
+    _verificar_respuesta(
+        respuesta,
+        "eliminar el PDF de Supabase Storage"
+    )
+
+    return True
+
+
+
+# -------------------------------------------------------------------
 # PRODUCTOS
 # -------------------------------------------------------------------
 
@@ -168,6 +300,92 @@ def guardar_producto(
     return int(filas[0]["id"])
 
 
+
+
+
+def actualizar_producto(
+    id_producto,
+    nombre,
+    ingrediente,
+    grupo,
+    tipo,
+    cultivos,
+    enfermedades,
+    insectos,
+    dosis="",
+    compatibilidad="",
+    incompatibilidad="",
+    fitotoxicidad="",
+    reingreso="",
+    carencia="",
+    toxicidad_abejas="",
+    pdf=""
+):
+    datos = {
+        "nombre": _texto_o_none(nombre),
+        "ingrediente": _texto_o_none(ingrediente),
+        "grupo": _texto_o_none(grupo),
+        "tipo": _texto_o_none(tipo),
+        "cultivos": _texto_o_none(cultivos),
+        "enfermedades": _texto_o_none(enfermedades),
+        "insectos": _texto_o_none(insectos),
+        "dosis": _texto_o_none(dosis),
+        "compatibilidad": _texto_o_none(compatibilidad),
+        "incompatibilidad": _texto_o_none(incompatibilidad),
+        "fitotoxicidad": _texto_o_none(fitotoxicidad),
+        "reingreso": _texto_o_none(reingreso),
+        "carencia": _texto_o_none(carencia),
+        "toxicidad_abejas": _texto_o_none(toxicidad_abejas),
+        "pdf": _texto_o_none(pdf),
+    }
+
+    respuesta = requests.patch(
+        _endpoint("productos"),
+        headers=_headers("return=minimal"),
+        params={
+            "id": f"eq.{int(id_producto)}",
+        },
+        json=datos,
+        timeout=60,
+    )
+
+    _verificar_respuesta(
+        respuesta,
+        "actualizar el producto"
+    )
+
+
+
+
+def actualizar_compatibilidad_producto(
+    id_producto,
+    compatibilidad,
+    incompatibilidad,
+    fitotoxicidad
+):
+    datos = {
+        "compatibilidad": _texto_o_none(compatibilidad),
+        "incompatibilidad": _texto_o_none(incompatibilidad),
+        "fitotoxicidad": _texto_o_none(fitotoxicidad),
+    }
+
+    respuesta = requests.patch(
+        _endpoint("productos"),
+        headers=_headers("return=minimal"),
+        params={
+            "id": f"eq.{int(id_producto)}",
+        },
+        json=datos,
+        timeout=60,
+    )
+
+    _verificar_respuesta(
+        respuesta,
+        "actualizar la compatibilidad del producto"
+    )
+
+
+
 def obtener_productos():
     respuesta = requests.get(
         _endpoint("productos"),
@@ -201,22 +419,70 @@ def eliminar_duplicados():
     df = obtener_productos()
 
     if df.empty or "pdf" not in df.columns:
-        return
+        return {
+            "eliminados": 0,
+            "mensaje": "No hay productos o no existe la columna PDF."
+        }
 
-    df["pdf_limpio"] = df["pdf"].fillna("").astype(str).str.strip()
+    df["pdf_limpio"] = (
+        df["pdf"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
 
+    df = df[
+        df["pdf_limpio"] != ""
+    ].copy()
+
+    if df.empty:
+        return {
+            "eliminados": 0,
+            "mensaje": "No hay PDF asociados para revisar."
+        }
+
+    # Mantiene el registro más nuevo, porque obtener_productos ordena id desc.
     duplicados = df[
-        (df["pdf_limpio"] != "")
-        & df.duplicated(subset=["pdf_limpio"], keep="first")
+        df.duplicated(
+            subset=["pdf_limpio"],
+            keep="first"
+        )
     ]
 
+    if duplicados.empty:
+        return {
+            "eliminados": 0,
+            "mensaje": "No se encontraron PDF repetidos."
+        }
+
+    eliminados = 0
+    errores = []
+
     for _, fila in duplicados.iterrows():
-        eliminar_producto(int(fila["id"]))
+        try:
+            eliminar_producto(
+                int(fila["id"])
+            )
+            eliminados += 1
+        except Exception as error:
+            errores.append(
+                f'{fila.get("nombre", "sin nombre")}: {error}'
+            )
 
+    mensaje = (
+        f"Se eliminaron {eliminados} productos duplicados. "
+        "Se mantuvo una sola ficha por cada PDF."
+    )
 
-# -------------------------------------------------------------------
-# USOS DEL PRODUCTO
-# -------------------------------------------------------------------
+    if errores:
+        mensaje += " Algunos registros no pudieron eliminarse."
+
+    return {
+        "eliminados": eliminados,
+        "mensaje": mensaje,
+        "errores": errores
+    }
+
 
 def guardar_usos_producto(producto_id, pdf, usos):
     # Eliminar usos anteriores del producto.

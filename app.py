@@ -30,13 +30,25 @@ import base64
 import textwrap
 import html
 import re
+import tempfile
 import pandas as pd
 from io import BytesIO
 from docx import Document
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
-from extractor_pdf import extraer_texto_pdf, analizar_texto
-from database import crear_tablas, guardar_producto, obtener_productos, eliminar_producto, eliminar_duplicados
+from extractor_pdf import extraer_texto_pdf, extraer_usos_pdf, analizar_texto
+from database import (
+    crear_tablas,
+    guardar_producto,
+    actualizar_producto,
+    actualizar_compatibilidad_producto,
+    guardar_usos_producto,
+    subir_pdf_storage,
+    eliminar_pdf_storage,
+    obtener_productos,
+    eliminar_producto,
+    eliminar_duplicados,
+)
 
 crear_tablas()
 
@@ -1499,6 +1511,778 @@ def aplicar_diseno_responsivo():
 
 
 
+
+# Ajustes finales para teléfonos
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        html,
+        body,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stAppViewContainer"] > .main {
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+        }
+
+        .block-container {
+            max-width: 100% !important;
+            padding: 0.75rem 0.65rem 6rem 0.65rem !important;
+        }
+
+        /* Ocultar elementos superiores que quitan espacio */
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"],
+        .stDeployButton {
+            display: none !important;
+        }
+
+        header[data-testid="stHeader"] {
+            height: 0 !important;
+            min-height: 0 !important;
+        }
+
+        /* Tarjetas de Cultivo, Plaga, Enfermedad y Maleza */
+        .modo-terreno-selector-card {
+            min-height: auto !important;
+            padding: 12px 12px 10px 12px !important;
+            margin: 0 0 10px 0 !important;
+            border-radius: 17px !important;
+        }
+
+        .modo-terreno-selector-icon {
+            width: 52px !important;
+            height: 52px !important;
+            min-width: 52px !important;
+        }
+
+        .modo-terreno-selector-emoji {
+            font-size: 1.75rem !important;
+        }
+
+        .modo-terreno-selector-title {
+            font-size: 1.05rem !important;
+            line-height: 1.15 !important;
+        }
+
+        .modo-terreno-selector-value {
+            font-size: 0.82rem !important;
+            line-height: 1.3 !important;
+        }
+
+        /* Selectores */
+        div[data-baseweb="select"] > div {
+            min-height: 48px !important;
+            border-radius: 12px !important;
+        }
+
+        div[data-baseweb="select"] span {
+            font-size: 0.95rem !important;
+        }
+
+        /* Encabezado de productos */
+        .modo-terreno-products-head {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+            gap: 5px !important;
+            padding: 4px 2px 10px 2px !important;
+        }
+
+        .modo-terreno-products-title {
+            font-size: 1rem !important;
+            line-height: 1.35 !important;
+        }
+
+        .modo-terreno-products-hint {
+            font-size: 0.8rem !important;
+            line-height: 1.35 !important;
+        }
+
+        /* Contenedor de lista */
+        .modo-terreno-lista,
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-lista-botones-marker
+        ) {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            box-sizing: border-box !important;
+            border-radius: 16px !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-lista-botones-marker
+        ) > div {
+            padding: 10px !important;
+        }
+
+        /* Filas de productos */
+        .modo-terreno-product-row-link,
+        .modo-terreno-product-row-pretty,
+        .modo-terreno-product-row-html {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+        }
+
+        .modo-terreno-product-row-link {
+            grid-template-columns: 48px minmax(0, 1fr) !important;
+            gap: 10px !important;
+            min-height: 72px !important;
+            padding: 10px !important;
+            border-radius: 15px !important;
+        }
+
+        .modo-terreno-product-row-pretty {
+            grid-template-columns: 48px minmax(0, 1fr) !important;
+            gap: 10px !important;
+            min-height: 70px !important;
+            padding: 10px 6px !important;
+        }
+
+        .modo-terreno-product-row-html {
+            grid-template-columns: 42px minmax(0, 1fr) !important;
+            gap: 9px !important;
+        }
+
+        .modo-terreno-product-name-box {
+            min-width: 0 !important;
+            max-width: 100% !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+            font-size: 0.95rem !important;
+            line-height: 1.2 !important;
+            margin-bottom: 4px !important;
+        }
+
+        div.stButton > button {
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+
+        /* Compatibilidad */
+        .modo-terreno-compat-wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 14px 12px !important;
+            border-radius: 18px !important;
+        }
+
+        .modo-terreno-compat-title {
+            font-size: 1.25rem !important;
+            margin-bottom: 10px !important;
+        }
+
+        .modo-terreno-compat-slots {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+        }
+
+        .modo-terreno-compat-slot {
+            min-width: 0 !important;
+            min-height: 58px !important;
+            padding: 10px !important;
+            font-size: 0.95rem !important;
+            line-height: 1.25 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+
+        .modo-terreno-compat-result {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 14px !important;
+            font-size: 0.92rem !important;
+            line-height: 1.45 !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        /* Botones inferiores */
+        .modo-terreno-action-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+            margin-bottom: 70px !important;
+        }
+
+        .modo-terreno-action-card {
+            min-height: 64px !important;
+            border-radius: 16px !important;
+            font-size: 1rem !important;
+        }
+
+        /* Evitar que cualquier componente ensanche la pantalla */
+        [data-testid="stHorizontalBlock"],
+        [data-testid="column"],
+        [data-testid="stVerticalBlock"],
+        [data-testid="stElementContainer"] {
+            min-width: 0 !important;
+            max-width: 100% !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Tarjetas compactas para teléfono
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        /* Menos separación entre las tarjetas */
+        div[data-testid="stHorizontalBlock"]:has(
+            .modo-terreno-selector-card
+        ) {
+            gap: 0.45rem !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-selector-card
+        ) {
+            gap: 0.35rem !important;
+        }
+
+        /* Tarjeta completa */
+        .modo-terreno-selector-card {
+            min-height: 0 !important;
+            padding: 7px 9px 6px 9px !important;
+            margin: 0 0 5px 0 !important;
+            border-radius: 14px !important;
+        }
+
+        /* Parte superior de la tarjeta */
+        .modo-terreno-filter-tools {
+            min-height: 0 !important;
+            gap: 8px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* Ícono */
+        .modo-terreno-selector-icon {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            flex-basis: 40px !important;
+            border-radius: 11px !important;
+        }
+
+        .modo-terreno-selector-emoji {
+            font-size: 1.35rem !important;
+            line-height: 1 !important;
+        }
+
+        /* Título y subtítulo */
+        .modo-terreno-selector-title {
+            font-size: 0.98rem !important;
+            line-height: 1.1 !important;
+            margin: 0 !important;
+        }
+
+        .modo-terreno-selector-value {
+            font-size: 0.74rem !important;
+            line-height: 1.15 !important;
+            margin-top: 1px !important;
+        }
+
+        /* Selector de opciones */
+        div[data-baseweb="select"] {
+            margin-top: 3px !important;
+        }
+
+        div[data-baseweb="select"] > div {
+            min-height: 42px !important;
+            height: 42px !important;
+            border-radius: 10px !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        div[data-baseweb="select"] span {
+            font-size: 0.88rem !important;
+        }
+
+        /* Menos espacio entre componentes de Streamlit */
+        div[data-testid="stElementContainer"]:has(
+            .modo-terreno-selector-card
+        ) {
+            margin-bottom: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-selector-card
+        ) > div {
+            padding: 7px 8px !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Compactación extra de tarjetas en teléfono
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-selector-card
+        ) {
+            margin-bottom: 6px !important;
+            border-radius: 14px !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-selector-card
+        ) > div {
+            padding: 5px 7px 7px 7px !important;
+        }
+
+        .modo-terreno-selector-card {
+            padding: 5px 7px !important;
+            margin: 0 0 3px 0 !important;
+            border-radius: 12px !important;
+        }
+
+        .modo-terreno-filter-tools {
+            min-height: 48px !important;
+            gap: 7px !important;
+        }
+
+        .modo-terreno-selector-icon {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            flex-basis: 34px !important;
+            border-radius: 9px !important;
+        }
+
+        .modo-terreno-selector-emoji {
+            font-size: 1.18rem !important;
+        }
+
+        .modo-terreno-selector-title {
+            font-size: 0.94rem !important;
+            line-height: 1.05 !important;
+        }
+
+        .modo-terreno-selector-value {
+            font-size: 0.69rem !important;
+            line-height: 1.05 !important;
+        }
+
+        div[data-baseweb="select"] {
+            margin-top: 1px !important;
+        }
+
+        div[data-baseweb="select"] > div {
+            min-height: 38px !important;
+            height: 38px !important;
+            border-radius: 9px !important;
+        }
+
+        div[data-baseweb="select"] span {
+            font-size: 0.84rem !important;
+        }
+
+        /* Menos espacio vertical entre tarjetas */
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-selector-card
+        ) {
+            gap: 0.18rem !important;
+        }
+
+        /* Evitar que botones flotantes tapen el contenido */
+        .block-container {
+            padding-bottom: 8rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Reducir espacio debajo de las pestañas en teléfono
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        div[data-testid="stTabs"] {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+        }
+
+        div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        div[data-testid="stTabs"] [data-baseweb="tab-panel"] {
+            padding-top: 0.35rem !important;
+        }
+
+        div[data-testid="stTabs"]
+        [data-baseweb="tab-panel"]
+        > div {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-app-shell-marker
+        ) {
+            margin-top: 0 !important;
+            padding-top: 4px !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(
+            .modo-terreno-app-shell-marker
+        ) {
+            margin-top: 0 !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Espacio inferior para evitar que la marca de Streamlit tape contenido
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+        .block-container {
+            padding-bottom: 13rem !important;
+        }
+
+        div[data-testid="stAppViewBlockContainer"] {
+            padding-bottom: 13rem !important;
+        }
+
+        .modo-terreno-action-grid {
+            margin-bottom: 8rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Ajuste inferior para navegación móvil
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        /* Intentar ocultar elementos inferiores de Streamlit */
+        footer,
+        [data-testid="stFooter"],
+        [data-testid="stBottom"],
+        [data-testid="stBottomBlockContainer"],
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            min-height: 0 !important;
+        }
+
+        /* Espacio seguro para Safari y Chrome móvil */
+        .block-container,
+        div[data-testid="stAppViewBlockContainer"] {
+            padding-bottom: calc(10rem + env(safe-area-inset-bottom)) !important;
+        }
+
+        /* Texto bajo el selector de malezas */
+        div[data-testid="stCaptionContainer"] {
+            margin-top: 0.2rem !important;
+            margin-bottom: 0.35rem !important;
+        }
+
+        div[data-testid="stCaptionContainer"] p {
+            font-size: 0.82rem !important;
+            line-height: 1.3 !important;
+        }
+
+        /* Compactar el sector del buscador */
+        div[data-testid="stTextInput"] {
+            margin-top: 0.15rem !important;
+            margin-bottom: 0.3rem !important;
+        }
+
+        div[data-testid="stTextInput"] input {
+            min-height: 42px !important;
+            font-size: 0.92rem !important;
+        }
+
+        /* Dejar libres los últimos controles */
+        div[data-testid="stButton"],
+        div[data-testid="stDownloadButton"] {
+            scroll-margin-bottom: 9rem !important;
+        }
+
+        .modo-terreno-action-grid {
+            padding-bottom: 6rem !important;
+            margin-bottom: 6rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Orden final de datos en las tarjetas de productos móviles
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 600px) {
+
+        .modo-terreno-product-row-link {
+            display: grid !important;
+            grid-template-columns: 46px minmax(0, 1fr) !important;
+            grid-template-rows: auto auto auto auto !important;
+            gap: 7px 10px !important;
+            align-items: start !important;
+            min-height: 0 !important;
+            padding: 12px !important;
+            overflow: visible !important;
+        }
+
+        /* Ícono */
+        .modo-terreno-product-row-link > div:nth-child(1) {
+            grid-column: 1 !important;
+            grid-row: 1 / 5 !important;
+            align-self: start !important;
+        }
+
+        /* Nombre e ingrediente */
+        .modo-terreno-product-row-link > div:nth-child(2) {
+            grid-column: 2 !important;
+            grid-row: 1 !important;
+            min-width: 0 !important;
+        }
+
+        /* Tipo de producto */
+        .modo-terreno-product-row-link > div:nth-child(3) {
+            grid-column: 2 !important;
+            grid-row: 2 !important;
+            min-width: 0 !important;
+        }
+
+        /* Grupo IRAC / FRAC / HRAC */
+        .modo-terreno-product-row-link > div:nth-child(4) {
+            grid-column: 2 !important;
+            grid-row: 3 !important;
+            min-width: 0 !important;
+        }
+
+        /* Abejas */
+        .modo-terreno-product-row-link > div:nth-child(5) {
+            grid-column: 2 !important;
+            grid-row: 4 !important;
+            min-width: 0 !important;
+        }
+
+        .modo-terreno-product-name-box {
+            font-size: 1rem !important;
+            line-height: 1.2 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            margin: 0 0 3px 0 !important;
+        }
+
+        .modo-terreno-product-name-meta {
+            font-size: 0.88rem !important;
+            line-height: 1.25 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        .modo-terreno-pill,
+        .modo-terreno-bee {
+            display: inline-block !important;
+            width: auto !important;
+            max-width: 100% !important;
+            padding: 5px 10px !important;
+            margin: 0 !important;
+            border-radius: 999px !important;
+            font-size: 0.78rem !important;
+            line-height: 1.2 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        .modo-terreno-lista-meta {
+            font-size: 0.82rem !important;
+            line-height: 1.3 !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        .modo-terreno-lista-meta strong {
+            display: block !important;
+            font-size: 0.76rem !important;
+            margin-bottom: 2px !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Diseño compacto del cuadro informativo y botones de búsqueda
+st.markdown(
+    """
+    <style>
+    .modo-terreno-info-box {
+        padding: 6px 12px !important;
+        margin: 2px auto 6px auto !important;
+        border-width: 1.5px !important;
+        border-radius: 13px !important;
+        box-shadow: none !important;
+    }
+
+    .modo-terreno-info-title {
+        font-size: 0.9rem !important;
+        line-height: 1.15 !important;
+        margin-bottom: 1px !important;
+    }
+
+    .modo-terreno-info-subtitle {
+        font-size: 0.76rem !important;
+        line-height: 1.2 !important;
+    }
+
+    .modo-terreno-buscar-marker,
+    .modo-terreno-limpiar-marker {
+        display: none;
+    }
+
+    div[data-testid="stVerticalBlock"]:has(
+        .modo-terreno-buscar-marker
+    ) div.stButton > button {
+        min-height: 46px;
+        border: 1px solid #168854 !important;
+        border-radius: 13px !important;
+        background: linear-gradient(
+            135deg,
+            #15965b,
+            #087944
+        ) !important;
+        color: white !important;
+        font-weight: 850 !important;
+        box-shadow: 0 7px 16px rgba(8, 121, 68, 0.20) !important;
+    }
+
+    div[data-testid="stVerticalBlock"]:has(
+        .modo-terreno-buscar-marker
+    ) div.stButton > button:hover {
+        background: linear-gradient(
+            135deg,
+            #10834f,
+            #066b3b
+        ) !important;
+        border-color: #066b3b !important;
+        transform: translateY(-1px);
+    }
+
+    div[data-testid="stVerticalBlock"]:has(
+        .modo-terreno-limpiar-marker
+    ) div.stButton > button {
+        min-height: 46px;
+        border: 1px solid #9dcdb5 !important;
+        border-radius: 13px !important;
+        background: #f4fbf7 !important;
+        color: #17663d !important;
+        font-weight: 850 !important;
+        box-shadow: none !important;
+    }
+
+    div[data-testid="stVerticalBlock"]:has(
+        .modo-terreno-limpiar-marker
+    ) div.stButton > button:hover {
+        border-color: #168854 !important;
+        background: #e8f7ef !important;
+        color: #0d7545 !important;
+    }
+
+    @media screen and (max-width: 600px) {
+        .modo-terreno-info-box {
+            padding: 5px 9px !important;
+            margin: 1px 0 5px 0 !important;
+            border-radius: 11px !important;
+        }
+
+        .modo-terreno-info-title {
+            font-size: 0.84rem !important;
+        }
+
+        .modo-terreno-info-subtitle {
+            font-size: 0.7rem !important;
+        }
+
+        div[data-testid="stTextInput"] label p {
+            font-size: 0.84rem !important;
+            font-weight: 750 !important;
+        }
+
+        div[data-testid="stTextInput"] input {
+            min-height: 40px !important;
+            font-size: 0.88rem !important;
+            border-radius: 11px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(
+            .modo-terreno-buscar-marker
+        ) {
+            gap: 0.5rem !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-buscar-marker
+        ) div.stButton > button,
+        div[data-testid="stVerticalBlock"]:has(
+            .modo-terreno-limpiar-marker
+        ) div.stButton > button {
+            min-height: 42px !important;
+            padding: 7px 8px !important;
+            border-radius: 11px !important;
+            font-size: 0.86rem !important;
+            margin-bottom: 0 !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 def obtener_pdf_bytes(referencia_pdf):
     """Obtiene un PDF desde Supabase Storage o desde la carpeta local."""
     import os
@@ -1830,24 +2614,12 @@ def guardar_compatibilidad_manual(
     incompatibilidad,
     fitotoxicidad
 ):
-    conn = sqlite3.connect("agro.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE productos
-        SET compatibilidad = ?,
-            incompatibilidad = ?,
-            fitotoxicidad = ?
-        WHERE id = ?
-    """, (
-        compatibilidad,
-        incompatibilidad,
-        fitotoxicidad,
-        id_producto
-    ))
-
-    conn.commit()
-    conn.close()
+    actualizar_compatibilidad_producto(
+        id_producto=id_producto,
+        compatibilidad=compatibilidad,
+        incompatibilidad=incompatibilidad,
+        fitotoxicidad=fitotoxicidad
+    )
 
 
 def convertir_excel(df):
@@ -2176,6 +2948,32 @@ def filtrar_modo_terreno(
     return df_filtrado
 
 
+
+def emoji_tipo_producto(tipo):
+    texto = limpiar_valor(tipo).lower()
+
+    if "herbicida" in texto:
+        return "🌿"
+
+    if "fungicida" in texto and "insecticida" in texto:
+        return "🌱"
+
+    if "fungicida" in texto:
+        return "🍄"
+
+    if "insecticida" in texto:
+        return "🐛"
+
+    if "acaricida" in texto:
+        return "🕷️"
+
+    if "bactericida" in texto:
+        return "🦠"
+
+    return "🧪"
+
+
+
 def tarjeta_producto_modo_terreno(fila, columna_malezas=None):
     nombre = valor_o_sin_info(fila.get("nombre", ""))
     tipo = valor_o_sin_info(fila.get("tipo", ""))
@@ -2345,46 +3143,655 @@ def base_datos_mockup_header():
     st.html(textwrap.dedent(html_base))
 
 
-def tabla_base_datos_mockup(df, limite=9):
+
+# Ajuste de ancho de columnas en Base de datos
+st.markdown(
+    """
+    <style>
+    .base-table-head,
+    .base-table-row {
+        grid-template-columns:
+            minmax(220px, 1.45fr)
+            minmax(140px, 0.82fr)
+            minmax(105px, 0.58fr)
+            minmax(220px, 1.15fr)
+            !important;
+    }
+
+    .base-table-head .base-table-cell:nth-child(2),
+    .base-table-row .base-table-cell:nth-child(2),
+    .base-table-head .base-table-cell:nth-child(3),
+    .base-table-row .base-table-cell:nth-child(3) {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    @media screen and (max-width: 700px) {
+        .base-table-head,
+        .base-table-row {
+            grid-template-columns:
+                minmax(180px, 1.35fr)
+                minmax(125px, 0.78fr)
+                minmax(95px, 0.55fr)
+                minmax(190px, 1.1fr)
+                !important;
+            min-width: 650px;
+        }
+
+        .base-table-scroll-body {
+            overflow-x: auto !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Iconos bonitos por tipo de producto
+st.markdown(
+    """
+    <style>
+    .modo-terreno-product-icon,
+    .base-product-icon {
+        position: relative !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: visible !important;
+    }
+
+    .modo-terreno-product-icon::before,
+    .base-product-icon::before {
+        position: absolute;
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .modo-terreno-product-icon.herbicida::before,
+    .base-product-icon.herbicida::before {
+        content: "🌿";
+    }
+
+    .modo-terreno-product-icon.fungicida::before,
+    .base-product-icon.fungicida::before {
+        content: "🍄";
+    }
+
+    .modo-terreno-product-icon.insecticida::before,
+    .base-product-icon.insecticida::before {
+        content: "🐛";
+    }
+
+    .modo-terreno-product-icon.acaricida::before,
+    .base-product-icon.acaricida::before {
+        content: "🕷️";
+    }
+
+    .modo-terreno-product-icon.bactericida::before,
+    .base-product-icon.bactericida::before {
+        content: "🦠";
+    }
+
+    .modo-terreno-product-icon.fungicida-insecticida::before,
+    .base-product-icon.fungicida-insecticida::before {
+        content: "🌱";
+    }
+
+    .modo-terreno-product-icon.otro::before,
+    .base-product-icon.otro::before {
+        content: "🧪";
+    }
+
+    @media screen and (max-width: 600px) {
+        .modo-terreno-product-icon::before,
+        .base-product-icon::before {
+            font-size: 1.25rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Ajustes móviles simples
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 700px) {
+
+        /* Evita que cualquier bloque se salga de la pantalla */
+        html, body, [data-testid="stAppViewContainer"] {
+            overflow-x: hidden !important;
+        }
+
+        .block-container {
+            padding-left: 0.65rem !important;
+            padding-right: 0.65rem !important;
+            max-width: 100% !important;
+        }
+
+        /* Botones de Streamlit en teléfono */
+        .stButton > button,
+        .stDownloadButton > button,
+        a[data-testid="stBaseButton-secondary"],
+        a[data-testid="stLinkButton"] {
+            width: 100% !important;
+            min-height: 42px !important;
+            font-size: 0.86rem !important;
+            border-radius: 12px !important;
+        }
+
+        /* Selectores más cómodos */
+        div[data-baseweb="select"] {
+            width: 100% !important;
+        }
+
+        /* Expander más compacto */
+        details {
+            border-radius: 12px !important;
+        }
+
+        details summary {
+            font-size: 0.9rem !important;
+            font-weight: 800 !important;
+        }
+
+        /* Ficha técnica compacta móvil */
+        .ficha-compacta {
+            padding: 10px !important;
+            border-radius: 16px !important;
+        }
+
+        .ficha-producto {
+            gap: 8px !important;
+        }
+
+        .ficha-titulo {
+            font-size: 1.12rem !important;
+            line-height: 1.12 !important;
+        }
+
+        .ficha-subtitulo {
+            font-size: 0.78rem !important;
+        }
+
+        .ficha-abejas-badge {
+            font-size: 0.72rem !important;
+            padding: 7px 9px !important;
+        }
+
+        .ficha-resumen {
+            grid-template-columns: 1fr !important;
+            width: 100% !important;
+        }
+
+        .ficha-item {
+            padding: 9px 10px !important;
+            border-right: 0 !important;
+            border-bottom: 1px solid #e4eaf0 !important;
+        }
+
+        .ficha-item:last-child {
+            border-bottom: 0 !important;
+        }
+
+        .ficha-item-titulo {
+            font-size: 0.78rem !important;
+        }
+
+        .ficha-item-valor {
+            font-size: 0.76rem !important;
+        }
+
+        .ficha-detalles {
+            grid-template-columns: 1fr !important;
+        }
+
+        .ficha-footer {
+            font-size: 0.72rem !important;
+            line-height: 1.3 !important;
+        }
+
+        /* Base de datos: evita que se rompa en celular */
+        .base-table-scroll,
+        .base-table-wrapper,
+        .base-table-container {
+            overflow-x: auto !important;
+            max-width: 100% !important;
+        }
+
+        .base-table-head,
+        .base-table-row {
+            min-width: 640px !important;
+        }
+
+        /* Tarjetas de productos modo terreno */
+        .modo-terreno-product-row-link {
+            grid-template-columns: 36px 1fr !important;
+            gap: 8px !important;
+            padding: 9px !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(3),
+        .modo-terreno-product-row-link > div:nth-child(4),
+        .modo-terreno-product-row-link > div:nth-child(5) {
+            grid-column: 2 / 3 !important;
+        }
+
+        .modo-terreno-product-name-box {
+            font-size: 0.9rem !important;
+            line-height: 1.15 !important;
+        }
+
+        .modo-terreno-product-name-meta {
+            font-size: 0.74rem !important;
+        }
+
+        .modo-terreno-product-icon {
+            width: 32px !important;
+            height: 32px !important;
+        }
+
+        /* PDF dentro de la app más bajo en teléfono */
+        iframe {
+            max-width: 100% !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
+# Tarjetas móviles más simples y compactas
+st.markdown(
+    """
+    <style>
+    @media screen and (max-width: 700px) {
+
+        .modo-terreno-product-row-link {
+            display: grid !important;
+            grid-template-columns: 46px 1fr auto !important;
+            gap: 8px 10px !important;
+            align-items: center !important;
+            padding: 11px !important;
+            border-radius: 18px !important;
+            min-height: 0 !important;
+        }
+
+        .modo-terreno-product-icon-cell {
+            grid-column: 1 / 2 !important;
+            grid-row: 1 / 4 !important;
+            align-self: start !important;
+        }
+
+        .modo-terreno-product-icon {
+            width: 42px !important;
+            height: 42px !important;
+            border-radius: 14px !important;
+            border: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 1.45rem !important;
+            background: #eef8f2 !important;
+            box-shadow: none !important;
+        }
+
+        .modo-terreno-product-icon::before,
+        .modo-terreno-product-icon::after {
+            display: none !important;
+            content: none !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(2) {
+            grid-column: 2 / 4 !important;
+            grid-row: 1 / 2 !important;
+            min-width: 0 !important;
+        }
+
+        .modo-terreno-product-name-box {
+            font-size: 0.98rem !important;
+            line-height: 1.15 !important;
+            font-weight: 900 !important;
+            margin-bottom: 3px !important;
+        }
+
+        .modo-terreno-product-name-meta {
+            font-size: 0.78rem !important;
+            line-height: 1.25 !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(3) {
+            grid-column: 2 / 3 !important;
+            grid-row: 2 / 3 !important;
+        }
+
+        .modo-terreno-pill {
+            display: inline-flex !important;
+            width: auto !important;
+            font-size: 0.74rem !important;
+            padding: 5px 10px !important;
+            margin: 2px 0 !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(4) {
+            grid-column: 2 / 3 !important;
+            grid-row: 3 / 4 !important;
+            font-size: 0.74rem !important;
+            line-height: 1.2 !important;
+            min-width: 0 !important;
+        }
+
+        .modo-terreno-product-row-link > div:nth-child(5) {
+            grid-column: 3 / 4 !important;
+            grid-row: 2 / 4 !important;
+            align-self: center !important;
+            justify-self: end !important;
+        }
+
+        .modo-terreno-bee {
+            font-size: 0.72rem !important;
+            padding: 5px 8px !important;
+            white-space: nowrap !important;
+        }
+
+        .modo-terreno-lista-meta strong {
+            font-size: 0.72rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+def tabla_base_datos_mockup(df, filas_visibles=7):
     if df.empty:
         return
 
-    filas_html = []
+    filas_tabla_html = []
+    tarjetas_movil_html = []
 
-    for _, fila in df.head(limite).iterrows():
-        nombre = escapar_html(fila.get("nombre", ""))
-        ingrediente = escapar_html(valor_o_sin_info(fila.get("ingrediente", "")))
-        grupo = escapar_html(valor_o_sin_info(fila.get("grupo", "")))
-        carencia = escapar_html(valor_o_sin_info(fila.get("carencia", "")))
-        clase_tipo = clase_tipo_producto(fila.get("tipo", ""))
+    for _, fila in df.iterrows():
+        nombre = escapar_html(
+            fila.get("nombre", "")
+        )
 
-        filas_html.append(f"""
+        ingrediente = escapar_html(
+            valor_o_sin_info(
+                fila.get("ingrediente", "")
+            )
+        )
+
+        grupo = escapar_html(
+            valor_o_sin_info(
+                fila.get("grupo", "")
+            )
+        )
+
+        tipo_texto = valor_o_sin_info(
+            fila.get("tipo", "")
+        )
+
+        tipo = escapar_html(tipo_texto)
+
+        clase_tipo = clase_tipo_producto(
+            fila.get("tipo", "")
+        )
+
+        emoji = emoji_tipo_producto(
+            fila.get("tipo", "")
+        )
+
+        filas_tabla_html.append(f"""
         <div class="base-table-row">
             <div class="base-table-cell base-product-cell">
-                <span class="base-product-icon {clase_tipo}"></span>
+                <span class="base-product-icon {clase_tipo}">
+                    {emoji}
+                </span>
                 <span>{nombre}</span>
             </div>
+
             <div class="base-table-cell">{ingrediente}</div>
+
             <div class="base-table-cell">{grupo}</div>
-            <div class="base-table-cell">{carencia}</div>
+
+            <div class="base-table-cell">
+                <span class="base-type-pill {clase_tipo}">
+                    {tipo}
+                </span>
+            </div>
         </div>
         """)
 
-    html_tabla = f"""
+        tarjetas_movil_html.append(f"""
+        <div class="base-mobile-card">
+            <div class="base-mobile-icon {clase_tipo}">
+                {emoji}
+            </div>
+
+            <div class="base-mobile-content">
+                <div class="base-mobile-name">
+                    {nombre}
+                </div>
+
+                <div class="base-mobile-ingredient">
+                    {ingrediente}
+                </div>
+
+                <div class="base-mobile-meta">
+                    <span>{tipo}</span>
+                    <span>{grupo}</span>
+                </div>
+            </div>
+        </div>
+        """)
+
+    cantidad = len(df)
+
+    html_tabla = """
+    <style>
+        .base-table-card-scroll {
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid #dbe3ec;
+            background: #ffffff;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        .base-table-scroll-body {
+            max-height: 357px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #94a3b8 #eef3f7;
+        }
+
+        .base-table-scroll-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .base-table-scroll-body::-webkit-scrollbar-track {
+            background: #eef3f7;
+            border-radius: 10px;
+        }
+
+        .base-table-scroll-body::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+
+        .base-table-count {
+            padding: 6px 14px 8px 14px;
+            color: #64748b;
+            font-size: 0.76rem;
+            text-align: right;
+            border-top: 1px solid #edf1f5;
+            background: #fafcfd;
+        }
+
+        .base-mobile-list {
+            display: none;
+        }
+
+        .base-product-icon {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 12px !important;
+            background: #eef8f2 !important;
+            font-size: 1.25rem !important;
+            flex: 0 0 auto !important;
+        }
+
+        .base-product-icon::before,
+        .base-product-icon::after {
+            display: none !important;
+            content: none !important;
+        }
+
+        @media screen and (max-width: 700px) {
+            .base-table-card-scroll {
+                display: none !important;
+            }
+
+            .base-mobile-list {
+                display: grid !important;
+                gap: 9px !important;
+            }
+
+            .base-mobile-card {
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                gap: 10px;
+                align-items: start;
+                padding: 11px;
+                border: 1px solid #dbe3ec;
+                border-radius: 16px;
+                background: #ffffff;
+                box-shadow: 0 5px 14px rgba(15, 23, 42, 0.05);
+            }
+
+            .base-mobile-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 14px;
+                background: #eef8f2;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.35rem;
+            }
+
+            .base-mobile-content {
+                min-width: 0;
+            }
+
+            .base-mobile-name {
+                font-size: 0.96rem;
+                font-weight: 900;
+                color: #0f172a;
+                line-height: 1.15;
+                overflow-wrap: anywhere;
+            }
+
+            .base-mobile-ingredient {
+                margin-top: 3px;
+                color: #64748b;
+                font-size: 0.76rem;
+                line-height: 1.25;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .base-mobile-meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                margin-top: 7px;
+            }
+
+            .base-mobile-meta span {
+                display: inline-flex;
+                border-radius: 999px;
+                background: #edf7f1;
+                color: #17663d;
+                padding: 4px 8px;
+                font-size: 0.7rem;
+                font-weight: 800;
+                max-width: 100%;
+                overflow-wrap: anywhere;
+            }
+
+            .base-table-count {
+                text-align: center;
+                border: 1px solid #edf1f5;
+                border-radius: 12px;
+                margin-top: 8px;
+            }
+        }
+    </style>
+
     <div class="base-app-shell">
-        <div class="base-table-card">
+        <div class="base-table-card-scroll">
             <div class="base-table-head">
                 <div class="base-table-cell">Producto</div>
                 <div class="base-table-cell">Ingrediente activo</div>
                 <div class="base-table-cell">Grupo</div>
-                <div class="base-table-cell">Carencia</div>
+                <div class="base-table-cell">Tipo</div>
             </div>
-            {''.join(filas_html)}
+
+            <div class="base-table-scroll-body">
+                __FILAS_TABLA__
+            </div>
+
+            <div class="base-table-count">
+                __CANTIDAD__ producto(s) guardado(s)
+            </div>
+        </div>
+
+        <div class="base-mobile-list">
+            __TARJETAS_MOVIL__
+
+            <div class="base-table-count">
+                __CANTIDAD__ producto(s) guardado(s)
+            </div>
         </div>
     </div>
     """
 
+    html_tabla = html_tabla.replace(
+        "__FILAS_TABLA__",
+        "".join(filas_tabla_html)
+    )
+
+    html_tabla = html_tabla.replace(
+        "__TARJETAS_MOVIL__",
+        "".join(tarjetas_movil_html)
+    )
+
+    html_tabla = html_tabla.replace(
+        "__CANTIDAD__",
+        str(cantidad)
+    )
+
     st.html(textwrap.dedent(html_tabla))
+
+
 
 
 def acciones_base_datos_mockup():
@@ -2522,7 +3929,7 @@ def lista_compacta_modo_terreno(df, columna_malezas=None, limite=12):
                 <div class="modo-terreno-product-click-row-marker"></div>
                 <div class="modo-terreno-product-row-link">
                     <div class="modo-terreno-product-icon-cell">
-                        <div class="modo-terreno-product-icon {html.escape(clase_tipo)}"></div>
+                        <div class="modo-terreno-product-icon {html.escape(clase_tipo)}">{emoji_tipo_producto(tipo)}</div>
                     </div>
                     <div>
                         <div class="modo-terreno-product-name-box">{html.escape(nombre)}</div>
@@ -2622,8 +4029,14 @@ def bloque_ficha_modo_terreno(titulo, icono, valor, full=False):
     """
 
 
-def ficha_didactica_modo_terreno(fila, columna_malezas=None):
-    nombre_crudo = limpiar_valor(fila.get("nombre", ""))
+def ficha_didactica_modo_terreno(
+    fila,
+    columna_malezas=None
+):
+    nombre_crudo = limpiar_valor(
+        fila.get("nombre", "")
+    )
+
     nombre_visible = re.sub(
         r"\s+ETIQUETA\b.*$",
         "",
@@ -2634,80 +4047,229 @@ def ficha_didactica_modo_terreno(fila, columna_malezas=None):
     if nombre_visible == "":
         nombre_visible = nombre_crudo
 
+    def valor_ficha(clave, predeterminado="Sin información"):
+        valor = limpiar_valor(
+            fila.get(clave, "")
+        )
+
+        if valor == "" or valor.lower() == "nan":
+            return predeterminado
+
+        return valor
+
+    def resumir_texto(valor, maximo=150):
+        valor = limpiar_valor(valor)
+
+        if valor == "" or valor.lower() == "nan":
+            return "Sin información"
+
+        if len(valor) <= maximo:
+            return valor
+
+        corte = valor[:maximo].rsplit(" ", 1)[0]
+
+        if corte == "":
+            corte = valor[:maximo]
+
+        return corte.rstrip(" ,.;:") + "…"
+
     nombre = escapar_html(nombre_visible)
-    tipo = escapar_html(fila.get("tipo", ""))
-    tipo_texto = limpiar_valor(fila.get("tipo", ""))
-    pdf = escapar_html(fila.get("pdf", ""))
-    subtitulo = escapar_html(fila.get("tipo", ""))
-    advertencia = html.escape(badge_advertencia_producto(fila))
-    clase_abejas, texto_abejas = clase_toxicidad_abejas(
-        fila.get("toxicidad_abejas", "")
+    tipo_texto = valor_ficha("tipo")
+    tipo = escapar_html(tipo_texto)
+    subtitulo = tipo
+
+    grupo_crudo = valor_ficha("grupo")
+    ingrediente_crudo = valor_ficha("ingrediente")
+    problema_crudo = problema_controlado(
+        fila,
+        columna_malezas
     )
-    texto_abejas_header = texto_abejas
+    dosis_cruda = valor_ficha("dosis")
 
-    if clase_abejas == "alta":
-        texto_abejas_header = "Tóxico para abejas"
+    compatibilidad_cruda = valor_ficha(
+        "compatibilidad"
+    )
+    incompatibilidad_cruda = valor_ficha(
+        "incompatibilidad"
+    )
+    reingreso_crudo = valor_ficha(
+        "reingreso"
+    )
+    fitotoxicidad_cruda = valor_ficha(
+        "fitotoxicidad"
+    )
+    toxicidad_abejas_cruda = valor_ficha(
+        "toxicidad_abejas"
+    )
 
-    observaciones_base = limpiar_valor(fila.get("observaciones", ""))
+    grupo = escapar_html(
+        resumir_texto(grupo_crudo, 90)
+    )
+
+    ingrediente = escapar_html(
+        resumir_texto(ingrediente_crudo, 130)
+    )
+
+    problema = escapar_html(
+        resumir_texto(problema_crudo, 240)
+    )
+
+    dosis = escapar_html(
+        resumir_texto(dosis_cruda, 110)
+    )
+
+    reingreso_resumido = escapar_html(
+        resumir_texto(reingreso_crudo, 95)
+    )
+
+    compatibilidad = escapar_html(
+        compatibilidad_cruda
+    )
+
+    incompatibilidad = escapar_html(
+        incompatibilidad_cruda
+    )
+
+    reingreso = escapar_html(
+        reingreso_crudo
+    )
+
+    fitotoxicidad = escapar_html(
+        fitotoxicidad_cruda
+    )
+
+    observaciones_base = limpiar_valor(
+        fila.get("observaciones", "")
+    )
+
     observaciones_partes = []
 
-    if observaciones_base != "":
-        observaciones_partes.append(observaciones_base)
+    if observaciones_base:
+        observaciones_partes.append(
+            observaciones_base
+        )
 
     try:
         from database import obtener_experiencias_producto
 
-        producto_id_ficha = limpiar_valor(fila.get("id", ""))
+        producto_id = limpiar_valor(
+            fila.get("id", "")
+        )
 
-        if producto_id_ficha != "":
-            df_experiencias_ficha = obtener_experiencias_producto(int(producto_id_ficha))
+        if producto_id:
+            experiencias = (
+                obtener_experiencias_producto(
+                    int(producto_id)
+                )
+            )
 
-            if df_experiencias_ficha is not None and not df_experiencias_ficha.empty:
-                observaciones_partes.append("Experiencia de campo:")
+            if (
+                experiencias is not None
+                and not experiencias.empty
+            ):
+                for _, experiencia in experiencias.head(
+                    4
+                ).iterrows():
+                    partes = []
 
-                for _, exp in df_experiencias_ficha.head(4).iterrows():
-                    cultivo_exp = limpiar_valor(exp.get("cultivo", ""))
-                    problema_exp = limpiar_valor(exp.get("problema", ""))
-                    dosis_exp = limpiar_valor(exp.get("dosis_usada", ""))
-                    resultado_exp = limpiar_valor(exp.get("resultado_observado", ""))
-                    fecha_exp = limpiar_valor(exp.get("fecha", ""))
-                    comentario_exp = limpiar_valor(exp.get("comentario", ""))
+                    cultivo = limpiar_valor(
+                        experiencia.get(
+                            "cultivo",
+                            ""
+                        )
+                    )
 
-                    detalle = "• "
+                    problema_exp = limpiar_valor(
+                        experiencia.get(
+                            "problema",
+                            ""
+                        )
+                    )
 
-                    if cultivo_exp:
-                        detalle += f"{cultivo_exp}"
+                    dosis_exp = limpiar_valor(
+                        experiencia.get(
+                            "dosis_usada",
+                            ""
+                        )
+                    )
+
+                    resultado = limpiar_valor(
+                        experiencia.get(
+                            "resultado_observado",
+                            ""
+                        )
+                    )
+
+                    comentario = limpiar_valor(
+                        experiencia.get(
+                            "comentario",
+                            ""
+                        )
+                    )
+
+                    if cultivo:
+                        partes.append(cultivo)
+
                     if problema_exp:
-                        detalle += f" / {problema_exp}"
-                    if dosis_exp:
-                        detalle += f" / dosis: {dosis_exp}"
-                    if resultado_exp and resultado_exp != "Seleccionar":
-                        detalle += f" / resultado: {resultado_exp}"
-                    if fecha_exp:
-                        detalle += f" / fecha: {fecha_exp}"
-                    if comentario_exp:
-                        detalle += f" — {comentario_exp}"
+                        partes.append(problema_exp)
 
-                    observaciones_partes.append(detalle)
+                    if dosis_exp:
+                        partes.append(
+                            f"Dosis: {dosis_exp}"
+                        )
+
+                    if (
+                        resultado
+                        and resultado != "Seleccionar"
+                    ):
+                        partes.append(
+                            f"Resultado: {resultado}"
+                        )
+
+                    if comentario:
+                        partes.append(comentario)
+
+                    if partes:
+                        observaciones_partes.append(
+                            " • ".join(partes)
+                        )
+
     except Exception:
         pass
 
-    if not observaciones_partes:
-        observaciones = "Sin observaciones registradas"
+    if observaciones_partes:
+        observaciones_crudas = "\n".join(
+            observaciones_partes
+        )
     else:
-        observaciones = "\n".join(observaciones_partes)
+        observaciones_crudas = (
+            "Sin observaciones registradas"
+        )
 
-    producto_visual = imagen_producto_html(nombre_crudo)
-    grupo = escapar_html(fila.get("grupo", ""))
-    ingrediente = escapar_html(fila.get("ingrediente", ""))
-    problema = escapar_html(problema_controlado(fila, columna_malezas))
-    dosis = escapar_html(fila.get("dosis", ""))
-    compatibilidad = escapar_html(fila.get("compatibilidad", ""))
-    incompatibilidad = escapar_html(fila.get("incompatibilidad", ""))
-    reingreso = escapar_html(fila.get("reingreso", ""))
-    abejas = escapar_html(fila.get("toxicidad_abejas", ""))
-    fitotoxicidad = escapar_html(fila.get("fitotoxicidad", ""))
-    observaciones_html = escapar_html(observaciones).replace("\\n", "<br>")
+    observaciones_html = escapar_html(
+        observaciones_crudas
+    ).replace("\\n", "<br>")
+
+    producto_visual = imagen_producto_html(
+        nombre_crudo
+    )
+
+    advertencia = html.escape(
+        badge_advertencia_producto(fila)
+    )
+
+    clase_abejas, texto_abejas = (
+        clase_toxicidad_abejas(
+            toxicidad_abejas_cruda
+        )
+    )
+
+    texto_abejas_header = texto_abejas
+
+    if clase_abejas == "alta":
+        texto_abejas_header = (
+            "Tóxico para abejas"
+        )
 
     html_ficha = f"""
     <!doctype html>
@@ -2715,6 +4277,10 @@ def ficha_didactica_modo_terreno(fila, columna_malezas=None):
     <head>
         <meta charset="utf-8">
         <style>
+            * {{
+                box-sizing: border-box;
+            }}
+
             body {{
                 margin: 0;
                 font-family: Arial, sans-serif;
@@ -2722,460 +4288,375 @@ def ficha_didactica_modo_terreno(fila, columna_malezas=None):
                 color: #111827;
             }}
 
-            .modo-terreno-ficha {{
-                box-sizing: border-box;
+            .ficha-compacta {{
                 border: 1px solid #d7e2dc;
-                border-radius: 24px;
-                padding: 12px 14px 12px 14px;
+                border-radius: 22px;
+                padding: 14px;
                 background: #ffffff;
                 box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
                 width: 100%;
-                position: relative;
-                overflow: hidden;
             }}
 
-            .modo-terreno-ficha-header {{
+            .ficha-encabezado {{
                 display: flex;
-                justify-content: space-between;
-                gap: 16px;
                 align-items: flex-start;
-                border-bottom: 1px solid #eaeef2;
-                padding: 0 2px 10px 2px;
-                margin-bottom: 0;
+                justify-content: space-between;
+                gap: 14px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid #e7edf1;
             }}
 
-            .modo-terreno-ficha-head-main {{
+            .ficha-producto {{
                 display: flex;
                 gap: 14px;
                 align-items: flex-start;
                 min-width: 0;
             }}
 
-            .modo-terreno-product-bottle {{
-                width: 62px;
-                height: 80px;
-                border-radius: 16px 16px 14px 14px;
-                background: linear-gradient(180deg, #e8f7ef 0%, #bfe7cf 100%);
-                border: 2px solid #8fd0ad;
-                position: relative;
-                flex: 0 0 auto;
-                box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.45);
-            }}
-
-            .modo-terreno-product-bottle::before {{
-                content: "";
-                position: absolute;
-                top: -10px;
-                left: 21px;
-                width: 18px;
-                height: 12px;
-                border-radius: 6px 6px 2px 2px;
-                background: #17663d;
-            }}
-
-            .modo-terreno-product-bottle::after {{
-                content: "";
-                position: absolute;
-                left: 11px;
-                right: 11px;
-                top: 26px;
-                height: 18px;
-                border-radius: 8px;
-                background: rgba(255, 255, 255, 0.82);
-                border: 1px solid rgba(23, 102, 61, 0.22);
-            }}
-
-            .modo-terreno-product-image {{
-                width: 72px;
-                height: 86px;
-                object-fit: contain;
-                flex: 0 0 auto;
-                display: block;
-            }}
-
-            .modo-terreno-type-ribbon {{
-                display: none;
-            }}
-
-            .modo-terreno-ficha-content {{
-                padding-right: 0;
-            }}
-
-            .modo-terreno-ficha-title {{
-                font-size: 1.65rem;
+            .ficha-titulo {{
+                font-size: 1.55rem;
                 font-weight: 900;
                 color: #0f172a;
-                margin: 0 0 3px 0;
-                overflow-wrap: anywhere;
                 line-height: 1.08;
+                overflow-wrap: anywhere;
             }}
 
-            .modo-terreno-ficha-subtitle {{
-                color: #57606a;
-                font-size: 0.86rem;
-                margin-bottom: 5px;
-            }}
-
-            .modo-terreno-pill {{
-                display: none;
-                padding: 5px 9px;
-                margin: 0 5px 6px 0;
-                border-radius: 999px;
-                background: #e8f7ef;
-                color: #17663d;
-                font-size: 0.78rem;
-                font-weight: 850;
-            }}
-
-            .modo-terreno-bee {{
-                display: none;
-                border-radius: 999px;
-                padding: 5px 9px;
-                font-size: 0.76rem;
-                font-weight: 850;
-                margin: 0 5px 6px 0;
-            }}
-
-            .modo-terreno-bee.alta {{
-                background: #ffe8e8;
-                color: #a61b1b;
-            }}
-
-            .modo-terreno-bee.media {{
-                background: #fff3cd;
-                color: #8a5a00;
-            }}
-
-            .modo-terreno-bee.baja {{
-                background: #e8f7ef;
-                color: #17663d;
-            }}
-
-            .modo-terreno-warning-badge {{
-                display: none;
-                border-radius: 999px;
-                padding: 5px 9px;
-                font-size: 0.76rem;
-                font-weight: 850;
-                margin: 0 5px 6px 0;
-                background: #ffe8e8;
-                color: #a61b1b;
-            }}
-
-            .modo-terreno-lista-meta {{
+            .ficha-subtitulo {{
+                margin-top: 4px;
                 color: #57606a;
                 font-size: 0.9rem;
-                overflow-wrap: anywhere;
-                min-width: 190px;
             }}
 
-            .modo-terreno-ficha-bee-top {{
+            .ficha-abejas {{
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
                 flex: 0 0 auto;
-                margin-top: 8px;
             }}
 
-            .modo-terreno-bee-icon {{
-                font-size: 1.5rem;
-                line-height: 1;
-            }}
-
-            .modo-terreno-bee-top-badge {{
-                border-radius: 8px;
-                padding: 9px 15px;
+            .ficha-abejas-badge {{
+                border-radius: 10px;
+                padding: 9px 13px;
                 background: #fff1d8;
-                color: #f05a1a;
-                font-size: 0.88rem;
+                color: #dc531a;
+                font-size: 0.82rem;
                 font-weight: 900;
                 text-transform: uppercase;
             }}
 
-            .modo-terreno-ficha-grid {{
+            .ficha-resumen {{
                 display: grid;
-                grid-template-columns: 30% 35% 35%;
-                gap: 0;
-                align-items: start;
-                border: 1px solid #e8edf2;
-                border-radius: 16px;
+                grid-template-columns:
+                    minmax(150px, 0.8fr)
+                    minmax(180px, 1fr)
+                    minmax(230px, 1.35fr)
+                    minmax(150px, 0.8fr);
+                border: 1px solid #e4eaf0;
+                border-radius: 15px;
                 overflow: hidden;
-                margin-top: 0;
+                margin-top: 12px;
             }}
 
-            .modo-terreno-ficha-section {{
-                box-sizing: border-box;
-                padding: 9px 14px;
-                background: #ffffff;
-                border: 0;
-                border-bottom: 0;
-                border-radius: 0;
-                min-height: 0;
-            }}
-
-            .modo-terreno-ficha-section:last-child {{
-                border-bottom: 0;
-            }}
-
-            .modo-terreno-ficha-section-title {{
-                display: flex;
-                align-items: flex-start;
-                gap: 8px;
-                color: #111827;
-                font-weight: 850;
-                margin-bottom: 5px;
-                font-size: 0.8rem;
-                line-height: 1.25;
-            }}
-
-            .modo-terreno-ficha-icon {{
-                width: 18px;
-                flex: 0 0 18px;
-                text-align: center;
-                font-weight: 950;
-                font-size: 1.05rem;
-                line-height: 1;
-            }}
-
-            .icon-teal {{ color: #1aa182; }}
-            .icon-blue {{ color: #176bd2; }}
-            .icon-green {{ color: #15935b; }}
-            .icon-red {{ color: #ff3b3b; }}
-
-            .modo-terreno-ficha-section-value {{
-                color: #111827;
-                overflow-wrap: anywhere;
-                line-height: 1.3;
-                font-size: 0.78rem;
-            }}
-
-            .modo-terreno-ficha-col {{
-                border-right: 1px solid #e1e8ee;
-                padding: 0;
+            .ficha-item {{
+                padding: 12px;
+                border-right: 1px solid #e4eaf0;
                 min-width: 0;
             }}
 
-            .modo-terreno-ficha-col:first-child {{
-                padding-left: 0;
-                display: grid;
-                gap: 0;
-            }}
-
-            .modo-terreno-ficha-col:nth-child(2) .modo-terreno-ficha-section {{
-                min-height: 0;
-            }}
-
-            .modo-terreno-ficha-col:last-child {{
+            .ficha-item:last-child {{
                 border-right: 0;
-                padding-right: 0;
             }}
 
-            .modo-terreno-right-grid {{
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0;
-                align-items: start;
+            .ficha-item-titulo {{
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-size: 0.82rem;
+                font-weight: 850;
+                color: #172033;
+                margin-bottom: 6px;
             }}
 
-            .modo-terreno-right-grid .modo-terreno-ficha-section {{
-                border-bottom: 1px solid #edf1f5;
-                border-left: 1px solid #edf1f5;
-                padding-left: 12px;
-                min-height: 82px;
+            .ficha-item-valor {{
+                font-size: 0.8rem;
+                color: #263449;
+                line-height: 1.35;
+                overflow-wrap: anywhere;
             }}
 
-            .modo-terreno-right-grid .modo-terreno-ficha-section:nth-child(3),
-            .modo-terreno-right-grid .modo-terreno-ficha-section:nth-child(4) {{
-                border-bottom: 0;
-            }}
-
-            .modo-terreno-observaciones {{
-                grid-column: 1 / -1;
-                border: 1px solid #f3d38c !important;
-                border-radius: 10px;
-                background: #fff8ea;
-                padding: 8px 10px !important;
-                box-shadow: none;
-                min-height: 52px !important;
-                margin: 10px 10px 0 10px;
-            }}
-
-            .modo-terreno-observaciones .modo-terreno-ficha-section-title {{
-                margin-bottom: 2px;
-            }}
-
-            .modo-terreno-dose-chip {{
+            .ficha-dose-chip {{
                 display: inline-block;
                 margin-top: 7px;
-                padding: 6px 9px;
+                padding: 5px 9px;
                 border-radius: 9px;
                 background: #e8f7ef;
                 color: #17663d;
                 font-weight: 800;
-                font-size: 0.78rem;
+                font-size: 0.74rem;
             }}
 
-            .modo-terreno-ficha-footer {{
+            .ficha-reingreso {{
                 margin-top: 10px;
-                border-radius: 15px;
-                background: #fff7e6;
-                border: 1px solid #ffd48a;
-                color: #7a4b00;
-                padding: 8px 12px;
+                border-radius: 12px;
+                border: 1px solid #dce9f9;
+                background: #f6faff;
+                padding: 9px 12px;
+                font-size: 0.8rem;
+                line-height: 1.35;
+            }}
+
+            .ficha-reingreso strong {{
+                color: #155fb0;
+                margin-right: 6px;
+            }}
+
+            .ficha-detalles {{
+                margin-top: 10px;
+                display: grid;
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }}
+
+            .ficha-detalles details {{
+                border: 1px solid #e1e7ed;
+                border-radius: 11px;
+                background: #fafcfd;
+                overflow: hidden;
+            }}
+
+            .ficha-detalles summary {{
+                cursor: pointer;
+                padding: 9px 11px;
+                font-size: 0.79rem;
                 font-weight: 850;
+                color: #263449;
+                list-style-position: inside;
+            }}
+
+            .ficha-detalle-texto {{
+                padding: 0 12px 11px 12px;
+                color: #435166;
+                font-size: 0.77rem;
+                line-height: 1.4;
+                overflow-wrap: anywhere;
+            }}
+
+            .ficha-footer {{
+                margin-top: 10px;
+                border-radius: 12px;
+                background: #fff8ea;
+                border: 1px solid #f3d38c;
+                padding: 8px 11px;
                 display: flex;
                 justify-content: space-between;
-                gap: 12px;
                 align-items: center;
+                gap: 10px;
+                color: #79510a;
+                font-size: 0.78rem;
+                font-weight: 800;
+            }}
+
+            @media screen and (max-width: 850px) {{
+                .ficha-resumen {{
+                    grid-template-columns:
+                        repeat(2, minmax(0, 1fr));
+                }}
+
+                .ficha-item:nth-child(2) {{
+                    border-right: 0;
+                }}
+
+                .ficha-item:nth-child(1),
+                .ficha-item:nth-child(2) {{
+                    border-bottom: 1px solid #e4eaf0;
+                }}
             }}
 
             @media screen and (max-width: 600px) {{
-                .modo-terreno-ficha-content {{
-                    padding-right: 0;
-                }}
-
-                .modo-terreno-type-ribbon {{
-                    display: none;
-                }}
-
-                .modo-terreno-product-bottle {{
-                    width: 46px;
-                    height: 58px;
-                }}
-
-                .modo-terreno-ficha-grid {{
-                    grid-template-columns: 1fr;
-                    border-radius: 16px;
-                }}
-
-                .modo-terreno-ficha-col {{
-                    border-right: 0;
-                    padding: 0;
-                    border-bottom: 1px solid #edf1f5;
-                }}
-
-                .modo-terreno-right-grid {{
-                    grid-template-columns: 1fr;
-                }}
-
-                .modo-terreno-right-grid .modo-terreno-ficha-section {{
-                    border-left: 0;
-                }}
-
-                .modo-terreno-observaciones {{
-                    margin: 8px 8px 0 8px;
-                }}
-
-                .modo-terreno-ficha-header {{
+                .ficha-encabezado {{
                     display: block;
                 }}
 
-                .modo-terreno-ficha-title {{
-                    font-size: 1.35rem;
+                .ficha-abejas {{
+                    margin-top: 10px;
                 }}
 
-                .modo-terreno-ficha-footer {{
+                .ficha-titulo {{
+                    font-size: 1.25rem;
+                }}
+
+                .ficha-resumen {{
+                    grid-template-columns: 1fr;
+                }}
+
+                .ficha-item {{
+                    border-right: 0;
+                    border-bottom: 1px solid #e4eaf0;
+                }}
+
+                .ficha-item:last-child {{
+                    border-bottom: 0;
+                }}
+
+                .ficha-detalles {{
+                    grid-template-columns: 1fr;
+                }}
+
+                .ficha-footer {{
                     display: block;
-                }}
-            }}
-
-            @media screen and (min-width: 601px) and (max-width: 900px) {{
-                .modo-terreno-ficha-grid {{
-                    grid-template-columns: repeat(2, minmax(0, 1fr));
-                }}
-
-                .modo-terreno-ficha-col:nth-child(2) {{
-                    border-right: 0;
-                    padding-right: 0;
-                }}
-
-                .modo-terreno-ficha-col:last-child {{
-                    grid-column: 1 / -1;
-                    border-right: 0;
-                    padding: 0;
-                    border-top: 1px solid #dde5ec;
                 }}
             }}
         </style>
     </head>
+
     <body>
-        <div class="modo-terreno-ficha">
-            <div class="modo-terreno-type-ribbon">{html.escape(tipo_texto)}</div>
-            <div class="modo-terreno-ficha-content">
-                <div class="modo-terreno-ficha-header">
-                    <div class="modo-terreno-ficha-head-main">
-                        {producto_visual}
-                        <div>
-                            <div class="modo-terreno-ficha-title">{nombre}</div>
-                            <div class="modo-terreno-ficha-subtitle">{subtitulo}</div>
-                            <span class="modo-terreno-pill">{tipo}</span>
-                            <span class="modo-terreno-bee {clase_abejas}">{html.escape(texto_abejas)}</span>
-                            <span class="modo-terreno-warning-badge">{advertencia}</span>
+        <div class="ficha-compacta">
+            <div class="ficha-encabezado">
+                <div class="ficha-producto">
+                    {producto_visual}
+
+                    <div>
+                        <div class="ficha-titulo">
+                            {nombre}
                         </div>
-                    </div>
-                    <div class="modo-terreno-ficha-bee-top">
-                        <span class="modo-terreno-bee-icon">🐝</span>
-                        <span class="modo-terreno-bee-top-badge">{html.escape(texto_abejas_header)}</span>
-                    </div>
-                </div>
-                <div class="modo-terreno-ficha-grid">
-                    <div class="modo-terreno-ficha-col">
-                        <div class="modo-terreno-ficha-section">
-                            <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-teal">⚗</span><span>Grupo químico</span></div>
-                            <div class="modo-terreno-ficha-section-value">{grupo}</div>
-                        </div>
-                        <div class="modo-terreno-ficha-section">
-                            <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-blue">⚗</span><span>Composición</span></div>
-                            <div class="modo-terreno-ficha-section-value">{ingrediente}</div>
-                        </div>
-                        <div class="modo-terreno-ficha-section">
-                            <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-green">✹</span><span>Plagas</span></div>
-                            <div class="modo-terreno-ficha-section-value">{problema}</div>
-                        </div>
-                    </div>
-                    <div class="modo-terreno-ficha-col">
-                        <div class="modo-terreno-ficha-section">
-                            <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-green">◖</span><span>Aplicación</span></div>
-                            <div class="modo-terreno-ficha-section-value">{dosis}</div>
-                            <div class="modo-terreno-dose-chip">Dosis referencial</div>
-                        </div>
-                    </div>
-                    <div class="modo-terreno-ficha-col">
-                        <div class="modo-terreno-right-grid">
-                            <div class="modo-terreno-ficha-section">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-blue">↗</span><span>Compatibilidad</span></div>
-                                <div class="modo-terreno-ficha-section-value">{compatibilidad}</div>
-                            </div>
-                            <div class="modo-terreno-ficha-section">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-red">▯</span><span>Incompatibilidad</span></div>
-                                <div class="modo-terreno-ficha-section-value">{incompatibilidad}</div>
-                            </div>
-                            <div class="modo-terreno-ficha-section">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-blue">♟</span><span>Reingreso</span></div>
-                                <div class="modo-terreno-ficha-section-value">{reingreso}</div>
-                            </div>
-                            <div class="modo-terreno-ficha-section">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon icon-green">◖</span><span>Fitotoxicidad</span></div>
-                                <div class="modo-terreno-ficha-section-value">{fitotoxicidad}</div>
-                            </div>
-                            <div class="modo-terreno-ficha-section modo-terreno-observaciones">
-                                <div class="modo-terreno-ficha-section-title"><span class="modo-terreno-ficha-icon">☏</span><span>Observaciones</span></div>
-                                <div class="modo-terreno-ficha-section-value">{observaciones_html}</div>
-                            </div>
+
+                        <div class="ficha-subtitulo">
+                            {subtitulo}
                         </div>
                     </div>
                 </div>
-                <div class="modo-terreno-ficha-footer">
-                    <span>Lea siempre la etiqueta antes de usar el producto.</span>
-                    <span>{advertencia}</span>
+
+                <div class="ficha-abejas">
+                    <span>🐝</span>
+
+                    <span class="ficha-abejas-badge">
+                        {html.escape(texto_abejas_header)}
+                    </span>
                 </div>
+            </div>
+
+            <div class="ficha-resumen">
+                <div class="ficha-item">
+                    <div class="ficha-item-titulo">
+                        ⚗ Grupo químico
+                    </div>
+
+                    <div class="ficha-item-valor">
+                        {grupo}
+                    </div>
+                </div>
+
+                <div class="ficha-item">
+                    <div class="ficha-item-titulo">
+                        🧬 Composición
+                    </div>
+
+                    <div class="ficha-item-valor">
+                        {ingrediente}
+                    </div>
+                </div>
+
+                <div class="ficha-item">
+                    <div class="ficha-item-titulo">
+                        ✹ Plagas, enfermedades o malezas
+                    </div>
+
+                    <div class="ficha-item-valor">
+                        {problema}
+                    </div>
+                </div>
+
+                <div class="ficha-item">
+                    <div class="ficha-item-titulo">
+                        ◖ Aplicación
+                    </div>
+
+                    <div class="ficha-item-valor">
+                        {dosis}
+                    </div>
+
+                    <span class="ficha-dose-chip">
+                        Dosis referencial
+                    </span>
+                </div>
+            </div>
+
+            <div class="ficha-reingreso">
+                <strong>🚶 Reingreso:</strong>
+                {reingreso_resumido}
+            </div>
+
+            <div class="ficha-detalles">
+                <details>
+                    <summary>
+                        Compatibilidad
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {compatibilidad}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>
+                        Incompatibilidad
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {incompatibilidad}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>
+                        Fitotoxicidad
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {fitotoxicidad}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>
+                        Reingreso completo
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {reingreso}
+                    </div>
+                </details>
+
+                <details>
+                    <summary>
+                        Observaciones y experiencia de campo
+                    </summary>
+
+                    <div class="ficha-detalle-texto">
+                        {observaciones_html}
+                    </div>
+                </details>
+            </div>
+
+            <div class="ficha-footer">
+                <span>
+                    Lea siempre la etiqueta antes de usar el producto.
+                </span>
+
+                <span>
+                    {advertencia}
+                </span>
             </div>
         </div>
     </body>
     </html>
     """
 
-    st.html(textwrap.dedent(html_ficha))
+    st.html(
+        textwrap.dedent(html_ficha)
+    )
+
 
 
 def evaluar_compatibilidad_seleccion(productos):
@@ -3280,24 +4761,545 @@ def compatibilidad_resultado_modo_terreno(productos_labels, resultados):
 
 def botones_finales_modo_terreno():
     html_botones = """
-    <div class="modo-terreno-action-grid">
-        <div class="modo-terreno-action-card pdf">
-            <span class="modo-terreno-action-icon pdf"></span>
-            <span>Cargar PDF</span>
-        </div>
-        <a class="modo-terreno-action-card campo" href="?accion_modo_terreno=experiencia" target="_self">
-            <span class="modo-terreno-action-icon campo"></span>
-            <span>Experiencia de campo</span>
+    <div style="
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 26px;
+        margin-bottom: 26px;
+    ">
+
+        <a href="?accion_modo_terreno=cargar_pdf" target="_self" style="
+            text-decoration: none;
+            background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+            color: white;
+            border-radius: 22px;
+            padding: 20px 22px;
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-size: 0.98rem;
+            font-weight: 750;
+            letter-spacing: 0.1px;
+            box-shadow: 0 12px 26px rgba(22, 163, 74, 0.22);
+            border: 1px solid rgba(255,255,255,0.42);
+        ">
+            <span style="
+                width: 38px;
+                height: 38px;
+                border-radius: 14px;
+                background: rgba(255,255,255,0.22);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.28rem;
+            ">📄</span>
+            <span style="line-height: 1.15;">Cargar etiqueta<br>PDF</span>
         </a>
-        <div class="modo-terreno-action-card db">
-            <span class="modo-terreno-action-icon db"></span>
-            <span>Base de datos</span>
-        </div>
+
+        <a href="?accion_modo_terreno=experiencia" target="_self" style="
+            text-decoration: none;
+            background: linear-gradient(135deg, #0f766e 0%, #2dd4bf 100%);
+            color: white;
+            border-radius: 22px;
+            padding: 20px 22px;
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-size: 0.98rem;
+            font-weight: 750;
+            letter-spacing: 0.1px;
+            box-shadow: 0 12px 26px rgba(20, 184, 166, 0.22);
+            border: 1px solid rgba(255,255,255,0.42);
+        ">
+            <span style="
+                width: 38px;
+                height: 38px;
+                border-radius: 14px;
+                background: rgba(255,255,255,0.22);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.28rem;
+            ">🌾</span>
+            <span style="line-height: 1.15;">Registrar<br>experiencia</span>
+        </a>
+
+        <a href="?accion_modo_terreno=base_datos" target="_self" style="
+            text-decoration: none;
+            background: linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%);
+            color: white;
+            border-radius: 22px;
+            padding: 20px 22px;
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            font-size: 0.98rem;
+            font-weight: 750;
+            letter-spacing: 0.1px;
+            box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
+            border: 1px solid rgba(255,255,255,0.42);
+        ">
+            <span style="
+                width: 38px;
+                height: 38px;
+                border-radius: 14px;
+                background: rgba(255,255,255,0.22);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.28rem;
+            ">🗂️</span>
+            <span style="line-height: 1.15;">Ver base<br>agrícola</span>
+        </a>
+
     </div>
     """
 
     st.html(textwrap.dedent(html_botones))
 
+
+def limpiar_nombre_pdf_subida(nombre):
+    nombre = os.path.basename(str(nombre))
+    nombre = re.sub(r"[^A-Za-z0-9._-]+", "_", nombre)
+    nombre = re.sub(r"_+", "_", nombre)
+    return nombre.strip("._") or "etiqueta.pdf"
+
+
+
+
+def corregir_campos_por_tipo_producto(resultado):
+    tipo = limpiar_valor(
+        resultado.get("tipo", "")
+    ).lower()
+
+    def parece_dosis(valor):
+        valor_min = limpiar_valor(valor).lower()
+
+        if valor_min == "":
+            return False
+
+        patrones = [
+            r"^\d+\s*[-–]\s*\d+$",
+            r"^\d+\s*[-–]\s*\d+\s*(g|kg|cc|ml|l)",
+            r"g\s*/\s*100\s*l",
+            r"kg\s*/\s*ha",
+            r"cc\s*/\s*ha",
+            r"l\s*/\s*ha",
+            r"aplicar\s+cuando",
+            r"seg[uú]n\s+variedad",
+        ]
+
+        return any(
+            re.search(patron, valor_min)
+            for patron in patrones
+        )
+
+    # Insecticida puro: no debe llenar enfermedades.
+    # Las plagas deben ir solo en "insectos".
+    if "insecticida" in tipo and "fungicida" not in tipo:
+        resultado["enfermedades"] = ""
+
+    # Herbicida: los problemas son malezas, no insectos.
+    if "herbicida" in tipo and "insecticida" not in tipo:
+        resultado["insectos"] = ""
+
+    # Fungicida puro: los problemas son enfermedades, no insectos.
+    if "fungicida" in tipo and "insecticida" not in tipo:
+        resultado["insectos"] = ""
+
+    return resultado
+
+
+
+def formulario_cargar_pdf_modo_terreno():
+    st.markdown("### Cargar una etiqueta PDF")
+    st.caption(
+        "El archivo quedará guardado permanentemente en Supabase."
+    )
+
+    archivo = st.file_uploader(
+        "Selecciona una etiqueta en formato PDF",
+        type=["pdf"],
+        accept_multiple_files=False,
+        key="modo_terreno_archivo_pdf"
+    )
+
+    if archivo is None:
+        return
+
+    pdf_bytes = archivo.getvalue()
+    nombre_original = archivo.name
+    nombre_storage = limpiar_nombre_pdf_subida(nombre_original)
+
+    if not nombre_storage.lower().endswith(".pdf"):
+        nombre_storage += ".pdf"
+
+    ruta_temporal = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            suffix=".pdf",
+            delete=False
+        ) as temporal:
+            temporal.write(pdf_bytes)
+            ruta_temporal = temporal.name
+
+        with st.spinner("Analizando la etiqueta..."):
+            texto = extraer_texto_pdf(ruta_temporal)
+            resultado = analizar_texto(
+                texto,
+                nombre_original
+            )
+            usos = extraer_usos_pdf(ruta_temporal)
+
+            if usos:
+                def unicos_usos(clave):
+                    valores = []
+                    vistos = set()
+
+                    for uso in usos:
+                        valor = str(
+                            uso.get(clave, "")
+                        ).strip()
+
+                        if not valor:
+                            continue
+
+                        identificador = valor.casefold()
+
+                        if identificador not in vistos:
+                            vistos.add(identificador)
+                            valores.append(valor)
+
+                    return valores
+
+                cultivos_tabla = unicos_usos("cultivo")
+                problemas_tabla = unicos_usos("problema")
+                dosis_tabla = unicos_usos("dosis")
+
+                palabras_insectos = [
+                    "mosca",
+                    "trips",
+                    "pulgón",
+                    "pulgon",
+                    "chanchito",
+                    "polilla",
+                    "ácaro",
+                    "acaro",
+                    "conchuela",
+                    "gusano",
+                    "larva",
+                    "insecto",
+                    "cuncunilla",
+                    "copitarsia",
+                    "drosophila",
+                    "pseudococcus",
+                    "frankliniella",
+                    "nasonovia"
+                ]
+
+                insectos_tabla = []
+                enfermedades_tabla = []
+
+                for problema in problemas_tabla:
+                    problema_minuscula = (
+                        problema.casefold()
+                    )
+
+                    es_insecto = any(
+                        palabra in problema_minuscula
+                        for palabra in palabras_insectos
+                    )
+
+                    if es_insecto:
+                        insectos_tabla.append(problema)
+                    else:
+                        enfermedades_tabla.append(
+                            problema
+                        )
+
+                if cultivos_tabla:
+                    resultado["cultivos"] = ", ".join(
+                        cultivos_tabla
+                    )
+
+                if dosis_tabla:
+                    resultado["dosis"] = ", ".join(
+                        dosis_tabla
+                    )
+
+                if insectos_tabla:
+                    resultado["insectos"] = ", ".join(
+                        insectos_tabla
+                    )
+
+                if enfermedades_tabla:
+                    resultado["enfermedades"] = ", ".join(
+                        enfermedades_tabla
+                    )
+
+    except Exception as error:
+        st.error(f"No fue posible analizar el PDF: {error}")
+        return
+
+    finally:
+        if ruta_temporal and os.path.exists(ruta_temporal):
+            os.remove(ruta_temporal)
+
+    st.success(
+        f"PDF analizado. Se encontraron {len(usos)} usos o dosis."
+    )
+
+    with st.expander("Ver PDF antes de guardar"):
+        mostrar_pdf_bytes(pdf_bytes, alto=550)
+
+    st.download_button(
+        "Descargar PDF seleccionado",
+        data=pdf_bytes,
+        file_name=nombre_original,
+        mime="application/pdf",
+        key="descargar_pdf_nuevo"
+    )
+
+    with st.form("formulario_guardar_pdf_supabase"):
+        resultado = corregir_campos_por_tipo_producto(resultado)
+
+        st.markdown("#### Revisa y corrige los datos")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            nombre = st.text_input(
+                "Producto",
+                value=resultado.get("producto", "")
+            )
+
+            ingrediente = st.text_area(
+                "Ingrediente activo",
+                value=resultado.get("ingrediente", ""),
+                height=100
+            )
+
+            grupo = st.text_input(
+                "Grupo IRAC / FRAC / HRAC",
+                value=resultado.get("grupo", "")
+            )
+
+            tipo = st.text_input(
+                "Tipo de producto",
+                value=resultado.get("tipo", "")
+            )
+
+            cultivos = st.text_area(
+                "Cultivos",
+                value=resultado.get("cultivos", ""),
+                height=120
+            )
+
+            dosis = st.text_area(
+                "Dosis general",
+                value=resultado.get("dosis", ""),
+                height=100
+            )
+
+        with col2:
+            tipo_resultado_actual = limpiar_valor(
+                resultado.get("tipo", "")
+            ).lower()
+
+            if "herbicida" in tipo_resultado_actual:
+                etiqueta_enfermedades = "Malezas controladas"
+            elif "fungicida" in tipo_resultado_actual:
+                etiqueta_enfermedades = "Enfermedades"
+            else:
+                etiqueta_enfermedades = "Enfermedades / problemas controlados"
+
+            enfermedades = st.text_area(
+                etiqueta_enfermedades,
+                value=resultado.get("enfermedades", ""),
+                height=100
+            )
+
+            insectos = st.text_area(
+                "Insectos o plagas",
+                value=resultado.get("insectos", ""),
+                height=100
+            )
+
+            reingreso = st.text_area(
+                "Reingreso",
+                value=resultado.get("reingreso", ""),
+                height=80
+            )
+
+            carencia = st.text_area(
+                "Carencia",
+                value=resultado.get("carencia", ""),
+                height=80
+            )
+
+            toxicidad_abejas = st.text_area(
+                "Toxicidad para abejas",
+                value=resultado.get(
+                    "toxicidad_abejas",
+                    ""
+                ),
+                height=90
+            )
+
+        compatibilidad = st.text_area(
+            "Compatibilidad",
+            value=resultado.get("compatibilidad", ""),
+            height=90
+        )
+
+        incompatibilidad = st.text_area(
+            "Incompatibilidad",
+            value=resultado.get("incompatibilidad", ""),
+            height=90
+        )
+
+        fitotoxicidad = st.text_area(
+            "Fitotoxicidad",
+            value=resultado.get("fitotoxicidad", ""),
+            height=90
+        )
+
+        if usos:
+            st.markdown("#### Usos y dosis detectados")
+
+            df_usos = pd.DataFrame(usos)
+
+            columnas_usos = [
+                "cultivo",
+                "problema",
+                "dosis",
+                "observaciones",
+                "pagina"
+            ]
+
+            for columna in columnas_usos:
+                if columna not in df_usos.columns:
+                    df_usos[columna] = ""
+
+            df_usos_editado = st.data_editor(
+                df_usos[columnas_usos],
+                use_container_width=True,
+                num_rows="dynamic",
+                hide_index=True,
+                key="editor_usos_pdf"
+            )
+        else:
+            st.warning(
+                "No se encontraron tablas de dosis automáticamente. "
+                "El producto igualmente se puede guardar."
+            )
+            df_usos_editado = pd.DataFrame()
+
+        confirmar = st.checkbox(
+            "Confirmo que revisé los datos de la etiqueta."
+        )
+
+        guardar = st.form_submit_button(
+            "Guardar PDF y producto",
+            use_container_width=True,
+            type="primary"
+        )
+
+    if not guardar:
+        return
+
+    if not confirmar:
+        st.warning(
+            "Debes confirmar que revisaste los datos."
+        )
+        return
+
+    if not str(nombre).strip():
+        st.error("El campo Producto es obligatorio.")
+        return
+
+    try:
+        with st.spinner(
+            "Subiendo el PDF y guardando los datos..."
+        ):
+            url_pdf = subir_pdf_storage(
+                nombre_storage,
+                pdf_bytes
+            )
+
+            producto_id = guardar_producto(
+                nombre=nombre,
+                ingrediente=ingrediente,
+                grupo=grupo,
+                tipo=tipo,
+                cultivos=cultivos,
+                enfermedades=enfermedades,
+                insectos=insectos,
+                dosis=dosis,
+                compatibilidad=compatibilidad,
+                incompatibilidad=incompatibilidad,
+                fitotoxicidad=fitotoxicidad,
+                reingreso=reingreso,
+                carencia=carencia,
+                toxicidad_abejas=toxicidad_abejas,
+                pdf=url_pdf
+            )
+
+            usos_guardar = []
+
+            if not df_usos_editado.empty:
+                for registro in df_usos_editado.to_dict(
+                    orient="records"
+                ):
+                    usos_guardar.append({
+                        "cultivo": registro.get(
+                            "cultivo",
+                            ""
+                        ),
+                        "problema": registro.get(
+                            "problema",
+                            ""
+                        ),
+                        "dosis": registro.get(
+                            "dosis",
+                            ""
+                        ),
+                        "observaciones": registro.get(
+                            "observaciones",
+                            ""
+                        ),
+                        "pagina": registro.get(
+                            "pagina"
+                        ),
+                    })
+
+            guardar_usos_producto(
+                producto_id,
+                url_pdf,
+                usos_guardar
+            )
+
+        st.success(
+            f"{nombre} fue guardado correctamente."
+        )
+
+        st.session_state[
+            "modo_terreno_busqueda_ejecutada"
+        ] = False
+
+    except Exception as error:
+        st.error(
+            "No fue posible guardar el producto: "
+            f"{error}"
+        )
 
 
 def formulario_experiencia_campo_modo_terreno(df_productos):
@@ -3607,10 +5609,24 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-tab_modo_terreno, tab_base = st.tabs([
-    "Modo terreno",
+accion_inicial = st.query_params.get(
+    "accion_modo_terreno",
+    ""
+)
+
+pestana_inicial = (
     "Base de datos"
-])
+    if accion_inicial == "base_datos"
+    else "Modo terreno"
+)
+
+tab_modo_terreno, tab_base = st.tabs(
+    [
+        "Modo terreno",
+        "Base de datos"
+    ],
+    default=pestana_inicial
+)
 
 
 with tab_modo_terreno:
@@ -3636,6 +5652,27 @@ with tab_modo_terreno:
 
         if df_terreno.empty:
             st.info("Aun no hay productos guardados. Carga etiquetas PDF para comenzar.")
+
+            st.markdown("### Comenzar desde cero")
+            st.write(
+                "Carga tu primera etiqueta PDF para crear la base de datos."
+            )
+
+            if st.button(
+                "📄 Cargar primer PDF",
+                use_container_width=True,
+                type="primary"
+            ):
+                st.query_params["accion_modo_terreno"] = "cargar_pdf"
+                st.rerun()
+
+            accion_modo_terreno_vacio = st.query_params.get(
+                "accion_modo_terreno",
+                ""
+            )
+
+            if accion_modo_terreno_vacio == "cargar_pdf":
+                formulario_cargar_pdf_modo_terreno()
         else:
             df_terreno["tipo"] = df_terreno.apply(completar_tipo_fila, axis=1)
             columna_malezas = columna_malezas_disponible(df_terreno)
@@ -3724,28 +5761,36 @@ with tab_modo_terreno:
 
             if not columna_malezas:
                 st.caption(
-                    "La base actual no tiene una columna específica de malezas; "
-                    "este selector queda preparado para usarla cuando exista información disponible."
+                    "El filtro de malezas estará disponible cuando se incorporen esos datos."
                 )
 
             busqueda_terreno = st.text_input(
-                "Buscar por nombre del producto u otro dato de etiqueta",
-                key="modo_terreno_busqueda"
+                "Buscar producto o dato de etiqueta",
+                key="modo_terreno_busqueda",
+                placeholder="Ej.: Pirimor, tomate, pulgón..."
             )
 
             col_buscar, col_limpiar = st.columns([1, 1])
 
             with col_buscar:
+                st.markdown(
+                    '<div class="modo-terreno-buscar-marker"></div>',
+                    unsafe_allow_html=True
+                )
                 st.button(
-                    "Buscar",
+                    "🔎 Buscar",
                     key="modo_terreno_boton_buscar",
                     on_click=buscar_productos_modo_terreno,
                     use_container_width=True
                 )
 
             with col_limpiar:
+                st.markdown(
+                    '<div class="modo-terreno-limpiar-marker"></div>',
+                    unsafe_allow_html=True
+                )
                 st.button(
-                    "Eliminar filtro",
+                    "↺ Limpiar",
                     key="modo_terreno_eliminar_filtro_inferior",
                     on_click=limpiar_filtros_modo_terreno,
                     use_container_width=True
@@ -3861,133 +5906,158 @@ with tab_modo_terreno:
                             )
 
                         if pdf_terreno_bytes:
-                            with st.expander("Ver PDF de respaldo"):
-                                mostrar_pdf_bytes(pdf_terreno_bytes)
+                            col_pdf_zoom, col_pdf_descarga = st.columns(2)
 
-                            st.download_button(
-                                label="Descargar PDF de respaldo",
-                                data=pdf_terreno_bytes,
-                                file_name=nombre_pdf_terreno,
-                                mime="application/pdf",
-                                key=f"modo_terreno_pdf_{fila_ficha_terreno['id']}"
-                            )
+                            with col_pdf_zoom:
+                                if str(pdf_terreno).startswith(("http://", "https://")):
+                                    st.link_button(
+                                        "🔍 Abrir PDF con zoom",
+                                        pdf_terreno,
+                                        use_container_width=True
+                                    )
+                                else:
+                                    st.button(
+                                        "🔍 Abrir PDF con zoom",
+                                        disabled=True,
+                                        use_container_width=True,
+                                        help="Disponible para PDF guardados en Supabase."
+                                    )
+
+                            with col_pdf_descarga:
+                                st.download_button(
+                                    label="⬇️ Descargar PDF",
+                                    data=pdf_terreno_bytes,
+                                    file_name=nombre_pdf_terreno,
+                                    mime="application/pdf",
+                                    key=f"modo_terreno_pdf_{fila_ficha_terreno['id']}",
+                                    use_container_width=True
+                                )
+
+                            with st.expander("Ver PDF dentro de la app"):
+                                mostrar_pdf_bytes(
+                                    pdf_terreno_bytes,
+                                    alto=480
+                                )
                         else:
                             st.caption("PDF de respaldo no disponible.")
 
-                st.divider()
+                with st.expander(
+                    "🧪 Revisar compatibilidad de mezcla",
+                    expanded=False
+                ):
+                    opciones_compat_terreno = {}
 
-                opciones_compat_terreno = {}
+                    for _, fila in df_terreno.iterrows():
+                        nombre_compat = limpiar_valor(
+                            fila.get("nombre", "")
+                        )
+                        tipo_compat = limpiar_valor(
+                            fila.get("tipo", "")
+                        )
+                        producto_id_compat = limpiar_valor(
+                            fila.get("id", "")
+                        )
 
-                for _, fila in df_terreno.iterrows():
-                    nombre_compat = limpiar_valor(fila.get("nombre", ""))
-                    tipo_compat = limpiar_valor(fila.get("tipo", ""))
-                    producto_id_compat = limpiar_valor(fila.get("id", ""))
+                        etiqueta = (
+                            f"{nombre_compat} | {tipo_compat} | "
+                            f"ID {producto_id_compat}"
+                        )
 
-                    etiqueta = (
-                        f"{nombre_compat} | {tipo_compat} | "
-                        f"ID {producto_id_compat}"
+                        opciones_compat_terreno[etiqueta] = fila
+
+                    st.caption(
+                        "Selecciona 2 a 4 productos para revisar si "
+                        "conviene mezclarlos."
                     )
 
-                    opciones_compat_terreno[etiqueta] = fila
+                    opciones_selector_compat = [
+                        "Seleccionar producto"
+                    ] + list(opciones_compat_terreno.keys())
 
-                st.markdown("### Compatibilidad")
-                st.caption(
-                    "Selecciona entre 2 y 4 productos para revisar la "
-                    "información disponible en sus etiquetas."
-                )
-
-                opciones_selector_compat = [
-                    "Seleccionar producto"
-                ] + list(opciones_compat_terreno.keys())
-
-                col_compat_1, col_compat_2 = st.columns(2)
-
-                with col_compat_1:
                     compat_producto_1 = st.selectbox(
                         "Producto 1",
                         opciones_selector_compat,
                         key="compat_producto_1"
                     )
 
-                    compat_producto_3 = st.selectbox(
-                        "Producto 3 (opcional)",
-                        opciones_selector_compat,
-                        key="compat_producto_3"
-                    )
-
-                with col_compat_2:
                     compat_producto_2 = st.selectbox(
                         "Producto 2",
                         opciones_selector_compat,
                         key="compat_producto_2"
                     )
 
-                    compat_producto_4 = st.selectbox(
-                        "Producto 4 (opcional)",
-                        opciones_selector_compat,
-                        key="compat_producto_4"
-                    )
+                    with st.expander(
+                        "Agregar producto 3 y 4 opcional",
+                        expanded=False
+                    ):
+                        compat_producto_3 = st.selectbox(
+                            "Producto 3",
+                            opciones_selector_compat,
+                            key="compat_producto_3"
+                        )
 
-                productos_compatibles_labels = [
-                    etiqueta
-                    for etiqueta in [
-                        compat_producto_1,
-                        compat_producto_2,
-                        compat_producto_3,
-                        compat_producto_4
-                    ]
-                    if etiqueta != "Seleccionar producto"
-                ]
+                        compat_producto_4 = st.selectbox(
+                            "Producto 4",
+                            opciones_selector_compat,
+                            key="compat_producto_4"
+                        )
 
-                # Evitar que un mismo producto se compare consigo mismo.
-                productos_compatibles_labels = list(
-                    dict.fromkeys(productos_compatibles_labels)
-                )
-
-                compatibilidad_slots_modo_terreno(
-                    productos_compatibles_labels
-                )
-
-                if len(productos_compatibles_labels) < 2:
-                    st.info(
-                        "Selecciona al menos 2 productos diferentes "
-                        "para evaluar la compatibilidad."
-                    )
-
-                    compatibilidad_resultado_modo_terreno(
-                        productos_compatibles_labels,
-                        []
-                    )
-                else:
-                    filas_compatibilidad = [
-                        opciones_compat_terreno[etiqueta]
-                        for etiqueta in productos_compatibles_labels
+                    productos_compatibles_labels = [
+                        etiqueta
+                        for etiqueta in [
+                            compat_producto_1,
+                            compat_producto_2,
+                            compat_producto_3,
+                            compat_producto_4
+                        ]
+                        if etiqueta != "Seleccionar producto"
                     ]
 
-                    try:
-                        resultados_compatibilidad = (
-                            evaluar_compatibilidad_seleccion(
-                                filas_compatibilidad
+                    productos_compatibles_labels = list(
+                        dict.fromkeys(productos_compatibles_labels)
+                    )
+
+                    if len(productos_compatibles_labels) < 2:
+                        st.info(
+                            "Selecciona al menos 2 productos diferentes."
+                        )
+                    else:
+                        compatibilidad_slots_modo_terreno(
+                            productos_compatibles_labels
+                        )
+
+                        filas_compatibilidad = [
+                            opciones_compat_terreno[etiqueta]
+                            for etiqueta in productos_compatibles_labels
+                        ]
+
+                        try:
+                            resultados_compatibilidad = (
+                                evaluar_compatibilidad_seleccion(
+                                    filas_compatibilidad
+                                )
                             )
-                        )
 
-                        compatibilidad_resultado_modo_terreno(
-                            productos_compatibles_labels,
-                            resultados_compatibilidad
-                        )
+                            compatibilidad_resultado_modo_terreno(
+                                productos_compatibles_labels,
+                                resultados_compatibilidad
+                            )
 
-                    except Exception as error:
-                        st.error(
-                            "No fue posible evaluar la compatibilidad: "
-                            f"{error}"
-                        )
+                        except Exception as error:
+                            st.error(
+                                "No fue posible evaluar la compatibilidad: "
+                                f"{error}"
+                            )
 
             st.divider()
             botones_finales_modo_terreno()
 
             accion_modo_terreno = st.query_params.get("accion_modo_terreno", "")
 
-            if accion_modo_terreno == "experiencia":
+            if accion_modo_terreno == "cargar_pdf":
+                formulario_cargar_pdf_modo_terreno()
+
+            elif accion_modo_terreno == "experiencia":
                 formulario_experiencia_campo_modo_terreno(df_terreno)
 
 
@@ -4085,802 +6155,688 @@ if False:
 
 
 with tab_base:
-    df = obtener_productos()
-
-    if "tipo" not in df.columns:
-        df["tipo"] = ""
-
-    if "dosis" not in df.columns:
-        df["dosis"] = ""
-
-    if "compatibilidad" not in df.columns:
-        df["compatibilidad"] = ""
-
-    if "incompatibilidad" not in df.columns:
-        df["incompatibilidad"] = ""
-
-    if "fitotoxicidad" not in df.columns:
-        df["fitotoxicidad"] = ""
-
-    if not df.empty:
-        df["tipo"] = df.apply(completar_tipo_fila, axis=1)
-
-    base_datos_mockup_header()
-    tabla_base_datos_mockup(df)
-    acciones_base_datos_mockup()
-
-    if not df.empty:
-        excel = convertir_excel(df.drop(columns=["id"], errors="ignore"))
-
-        st.download_button(
-            label="Descargar base en Excel",
-            data=excel,
-            file_name="base_productos_agricolas.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-        respaldo_zip = generar_respaldo_completo(df)
-
-        st.download_button(
-            label="Descargar respaldo completo ZIP",
-            data=respaldo_zip,
-            file_name="respaldo_ia_agricola_v15.zip",
-            mime="application/zip"
-        )
-
-    if st.button("Eliminar PDFs repetidos"):
-        eliminar_duplicados()
-        st.success("Duplicados eliminados")
-        st.rerun()
-
-    if df.empty:
-        st.info("Aun no hay productos guardados.")
-    else:
-        tipos_disponibles = [
-            tipo for tipo in df["tipo"].dropna().unique().tolist()
-            if str(tipo).strip() != ""
-        ]
-
-        tipos_disponibles = ["Todos"] + sorted(tipos_disponibles)
-
-        cultivos_lista = []
-
-        for valor in df["cultivos"].dropna().tolist():
-            partes = str(valor).split(",")
-
-            for parte in partes:
-                cultivo = parte.strip()
-
-                if cultivo != "":
-                    cultivos_lista.append(cultivo)
-
-        cultivos_disponibles = ["Todos"] + sorted(set(cultivos_lista))
-
-        ingredientes_lista = []
-
-        for valor in df["ingrediente"].dropna().tolist():
-            partes = str(valor).split(",")
-
-            for parte in partes:
-                ingrediente = parte.strip()
-
-                if ingrediente != "":
-                    ingredientes_lista.append(ingrediente)
-
-        ingredientes_disponibles = ["Todos"] + sorted(set(ingredientes_lista))
-
-        problemas_lista = []
-
-        for columna in ["enfermedades", "insectos"]:
-            for valor in df[columna].dropna().tolist():
-                partes = str(valor).split(",")
-
-                for parte in partes:
-                    problema = parte.strip()
-
-                    if problema != "":
-                        problemas_lista.append(problema)
-
-        problemas_disponibles = ["Todos"] + sorted(set(problemas_lista))
-
-        if "filtro_tipo" not in st.session_state:
-            st.session_state["filtro_tipo"] = "Todos"
-
-        if "filtro_cultivo" not in st.session_state:
-            st.session_state["filtro_cultivo"] = "Todos"
-
-        if "filtro_ingrediente" not in st.session_state:
-            st.session_state["filtro_ingrediente"] = "Todos"
-
-        if "filtro_problema" not in st.session_state:
-            st.session_state["filtro_problema"] = "Todos"
-
-        if "busqueda_base" not in st.session_state:
-            st.session_state["busqueda_base"] = ""
-
-        if st.session_state["filtro_tipo"] not in tipos_disponibles:
-            st.session_state["filtro_tipo"] = "Todos"
-
-        if st.session_state["filtro_cultivo"] not in cultivos_disponibles:
-            st.session_state["filtro_cultivo"] = "Todos"
-
-        if st.session_state["filtro_ingrediente"] not in ingredientes_disponibles:
-            st.session_state["filtro_ingrediente"] = "Todos"
-
-        if st.session_state["filtro_problema"] not in problemas_disponibles:
-            st.session_state["filtro_problema"] = "Todos"
-
-        if st.button("Limpiar filtros"):
-            st.session_state["filtro_tipo"] = "Todos"
-            st.session_state["filtro_cultivo"] = "Todos"
-            st.session_state["filtro_ingrediente"] = "Todos"
-            st.session_state["filtro_problema"] = "Todos"
-            st.session_state["busqueda_base"] = ""
+    if st.query_params.get(
+        "accion_modo_terreno",
+        ""
+    ) == "base_datos":
+        if st.button(
+            "← Volver a Modo terreno",
+            key="volver_desde_base_datos"
+        ):
+            st.query_params.clear()
             st.rerun()
 
-        col_filtro1, col_filtro2, col_filtro3, col_filtro4, col_filtro5 = st.columns([1, 1, 1, 1, 2])
+    df = obtener_productos()
 
-        with col_filtro1:
-            filtro_tipo = st.selectbox(
-                "Filtrar por tipo",
-                tipos_disponibles,
-                key="filtro_tipo"
-            )
+    columnas_necesarias = [
+        "tipo",
+        "ingrediente",
+        "grupo",
+        "carencia",
+        "pdf"
+    ]
 
-        with col_filtro2:
-            filtro_cultivo = st.selectbox(
-                "Filtrar por cultivo",
-                cultivos_disponibles,
-                key="filtro_cultivo"
-            )
+    for columna in columnas_necesarias:
+        if columna not in df.columns:
+            df[columna] = ""
 
-        with col_filtro3:
-            filtro_ingrediente = st.selectbox(
-                "Filtrar por ingrediente",
-                ingredientes_disponibles,
-                key="filtro_ingrediente"
-            )
-
-        with col_filtro4:
-            filtro_problema = st.selectbox(
-                "Filtrar por problema",
-                problemas_disponibles,
-                key="filtro_problema"
-            )
-
-        with col_filtro5:
-            busqueda = st.text_input(
-                "Buscar en la base",
-                key="busqueda_base"
-            )
-
-        df_filtrado = df.copy()
-
-        if filtro_tipo != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["tipo"] == filtro_tipo]
-
-        if filtro_cultivo != "Todos":
-            df_filtrado = df_filtrado[
-                df_filtrado["cultivos"].astype(str).str.contains(
-                    filtro_cultivo,
-                    case=False,
-                    na=False
-                )
-            ]
-
-        if filtro_ingrediente != "Todos":
-            df_filtrado = df_filtrado[
-                df_filtrado["ingrediente"].astype(str).str.contains(
-                    filtro_ingrediente,
-                    case=False,
-                    na=False
-                )
-            ]
-
-        if filtro_problema != "Todos":
-            filtro_enfermedad = df_filtrado["enfermedades"].astype(str).str.contains(
-                filtro_problema,
-                case=False,
-                na=False
-            )
-
-            filtro_insecto = df_filtrado["insectos"].astype(str).str.contains(
-                filtro_problema,
-                case=False,
-                na=False
-            )
-
-            df_filtrado = df_filtrado[filtro_enfermedad | filtro_insecto]
-
-        if busqueda:
-            filtro = df_filtrado.apply(
-                lambda fila: fila.astype(str).str.contains(
-                    busqueda,
-                    case=False,
-                    na=False
-                ).any(),
-                axis=1
-            )
-            df_mostrar = df_filtrado[filtro].copy()
-        else:
-            df_mostrar = df_filtrado.copy()
-
-        st.info(
-            f"Mostrando {len(df_mostrar)} producto(s) de {len(df)} guardado(s)"
+    if not df.empty:
+        df["tipo"] = df.apply(
+            completar_tipo_fila,
+            axis=1
         )
 
-        vista_compacta = st.toggle(
-            "Vista compacta para teléfono/tablet",
-            value=False
+    # Encabezado y tabla visual.
+    base_datos_mockup_header()
+    tabla_base_datos_mockup(df)
+
+    st.markdown(
+        """
+        <style>
+        /* Tarjetas inferiores de Base de datos */
+        .base-funcional-marker {
+            display: none;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(
+            .base-funcional-marker
+        ) {
+            max-width: 920px;
+            margin: 18px auto 0 auto;
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .base-selector-marker
+        ),
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) {
+            border: 1px solid #d6dee8;
+            border-radius: 18px;
+            background: #ffffff;
+            padding: 18px;
+            box-shadow: 0 9px 26px rgba(15, 23, 42, 0.08);
+            min-height: 190px;
+        }
+
+        .base-selector-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2px;
+            color: #0f172a;
+            font-size: 1.18rem;
+            font-weight: 850;
+        }
+
+        .base-selector-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eafaf2;
+            color: #14965a;
+            border: 1px solid #bcebd2;
+            font-size: 1.1rem;
+        }
+
+        .base-selector-subtitle {
+            color: #64748b;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-left: 46px;
+            margin-bottom: 14px;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .base-selector-marker
+        ) div[data-baseweb="select"] > div {
+            border-radius: 12px !important;
+            border: 1.5px solid #f0bf54 !important;
+            background: #fff9e9 !important;
+            min-height: 48px;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) div.stButton > button,
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) div.stDownloadButton > button {
+            width: 100%;
+            min-height: 68px;
+            border: none !important;
+            border-radius: 13px !important;
+            background: linear-gradient(
+                135deg,
+                #0763ca,
+                #0753b7
+            ) !important;
+            color: #ffffff !important;
+            font-weight: 850 !important;
+            font-size: 0.96rem !important;
+            box-shadow: 0 7px 16px rgba(7, 83, 183, 0.22);
+            margin-bottom: 8px;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) div.stButton > button:hover,
+        div[data-testid="stVerticalBlock"]:has(
+            .base-botones-marker
+        ) div.stDownloadButton > button:hover {
+            background: linear-gradient(
+                135deg,
+                #0757b5,
+                #06469a
+            ) !important;
+            transform: translateY(-1px);
+        }
+
+        .base-producto-seleccionado {
+            max-width: 920px;
+            margin: 10px auto 0 auto;
+            color: #64748b;
+            font-size: 0.84rem;
+        }
+
+        .base-admin-wrapper {
+            max-width: 920px;
+            margin: 12px auto 0 auto;
+        }
+
+        @media screen and (max-width: 700px) {
+            div[data-testid="stHorizontalBlock"]:has(
+                .base-funcional-marker
+            ) {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(
+                .base-selector-marker
+            ),
+            div[data-testid="stVerticalBlock"]:has(
+                .base-botones-marker
+            ) {
+                padding: 14px !important;
+                min-height: auto !important;
+                border-radius: 15px !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(
+                .base-botones-marker
+            ) div.stButton > button,
+            div[data-testid="stVerticalBlock"]:has(
+                .base-botones-marker
+            ) div.stDownloadButton > button {
+                min-height: 54px !important;
+                font-size: 0.88rem !important;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if df.empty:
+        st.info("Aún no hay productos guardados.")
+
+    else:
+        opciones_productos = {}
+
+        for _, fila in df.iterrows():
+            nombre = str(
+                fila.get("nombre", "")
+            ).strip()
+
+            tipo = str(
+                fila.get("tipo", "")
+            ).strip()
+
+            producto_id = int(fila["id"])
+
+            etiqueta = (
+                f"{nombre} | {tipo} | ID {producto_id}"
+            )
+
+            opciones_productos[etiqueta] = fila
+
+        col_selector, col_botones = st.columns(
+            [1.15, 0.75]
         )
 
-        if vista_compacta:
-            st.subheader("Vista compacta de productos")
-
-            for _, fila_card in df_mostrar.iterrows():
-                nombre_card = str(fila_card.get("nombre", "")).replace("CONSENTIMIENTO", "CONSENTO")
-                tipo_card = str(fila_card.get("tipo", ""))
-                pdf_card = str(fila_card.get("pdf", ""))
-
-                titulo_card = f"{nombre_card} | {tipo_card} | {pdf_card}"
-
-                with st.expander(titulo_card):
-                    problema_card = str(fila_card.get("problema", "")).strip()
-
-                    if problema_card == "" or problema_card.lower() == "nan":
-                        enfermedades_card = str(fila_card.get("enfermedades", "")).strip()
-                        insectos_card = str(fila_card.get("insectos", "")).strip()
-
-                        problema_card = ", ".join(
-                            dato for dato in [enfermedades_card, insectos_card]
-                            if dato != "" and dato.lower() != "nan"
-                        )
-
-                    st.markdown(f"### {nombre_card}")
-
-                    st.write(f"**Tipo:** {fila_card.get('tipo', '')}")
-                    st.write(f"**Ingrediente activo:** {fila_card.get('ingrediente', '')}")
-                    st.write(f"**Grupo:** {fila_card.get('grupo', '')}")
-                    st.write(f"**Dosis:** {fila_card.get('dosis', '')}")
-                    st.write(f"**Cultivos:** {fila_card.get('cultivos', '')}")
-                    st.write(f"**Problema:** {problema_card}")
-                    st.write(f"**Carencia:** {fila_card.get('carencia', '')}")
-                    st.write(f"**Reingreso:** {fila_card.get('reingreso', '')}")
-                    st.write(f"**Abejas:** {fila_card.get('toxicidad_abejas', '')}")
-
-                    compat_card = str(fila_card.get("compatibilidad", "")).strip()
-                    incompat_card = str(fila_card.get("incompatibilidad", "")).strip()
-                    fito_card = str(fila_card.get("fitotoxicidad", "")).strip()
-
-                    if compat_card != "" and compat_card.lower() != "nan":
-                        st.success(f"Compatibilidad: {compat_card}")
-
-                    if incompat_card != "" and incompat_card.lower() != "nan":
-                        st.error(f"Incompatibilidad: {incompat_card}")
-
-                    if fito_card != "" and fito_card.lower() != "nan":
-                        st.warning(f"Fitotoxicidad: {fito_card}")
-
-                    st.caption(f"PDF de respaldo: {pdf_card}")
-
-            st.divider()
-        if not df_mostrar.empty:
-            st.subheader("Comparador de compatibilidad")
-
-            def normalizar_comparador(valor):
-                valor = str(valor).lower()
-                reemplazos = {
-                    "á": "a",
-                    "é": "e",
-                    "í": "i",
-                    "ó": "o",
-                    "ú": "u",
-                    "ñ": "n",
-                    "®": "",
-                    "™": "",
-                    "%": " ",
-                    ".": " ",
-                    ",": " ",
-                    "-": " ",
-                    "_": " ",
-                    "/": " "
-                }
-
-                for viejo, nuevo in reemplazos.items():
-                    valor = valor.replace(viejo, nuevo)
-
-                valor = " ".join(valor.split())
-
-                return valor
-
-            def palabras_clave_producto(nombre):
-                nombre = normalizar_comparador(nombre)
-
-                palabras_excluir = {
-                    "sc", "ec", "wg", "wp", "sl", "od", "sp", "sg",
-                    "etiqueta", "pdf", "de", "del", "la", "el", "los",
-                    "las", "producto"
-                }
-
-                palabras = []
-
-                for palabra in nombre.split():
-                    if palabra in palabras_excluir:
-                        continue
-
-                    if len(palabra) <= 2:
-                        continue
-
-                    palabras.append(palabra)
-
-                return palabras
-
-            def etiqueta_menciona_producto(texto_etiqueta, nombre_producto):
-                texto_etiqueta = normalizar_comparador(texto_etiqueta)
-                nombre_producto_normalizado = normalizar_comparador(nombre_producto)
-
-                if nombre_producto_normalizado != "" and nombre_producto_normalizado in texto_etiqueta:
-                    return True
-
-                palabras = palabras_clave_producto(nombre_producto)
-
-                if not palabras:
-                    return False
-
-                coincidencias = 0
-
-                for palabra in palabras:
-                    if palabra in texto_etiqueta:
-                        coincidencias += 1
-
-                if len(palabras) == 1 and coincidencias == 1:
-                    return True
-
-                if len(palabras) >= 2 and coincidencias >= 2:
-                    return True
-
-                return False
-
-            opciones_comparador = {}
-
-            for _, fila in df.iterrows():
-                etiqueta = f'{fila["nombre"]} | {fila["tipo"]} | {fila["pdf"]} | ID {fila["id"]}'
-                opciones_comparador[etiqueta] = fila
-
-            etiquetas_productos = list(opciones_comparador.keys())
-
-            col_comp1, col_comp2 = st.columns(2)
-
-            with col_comp1:
-                producto_a_label = st.selectbox(
-                    "Producto A",
-                    etiquetas_productos,
-                    key="comparador_producto_a"
-                )
-
-            with col_comp2:
-                producto_b_label = st.selectbox(
-                    "Producto B",
-                    etiquetas_productos,
-                    key="comparador_producto_b"
-                )
-
-            fila_a = opciones_comparador[producto_a_label]
-            fila_b = opciones_comparador[producto_b_label]
-
-            nombre_a = str(fila_a.get("nombre", "")).strip()
-            nombre_b = str(fila_b.get("nombre", "")).strip()
-
-            compat_a = str(fila_a.get("compatibilidad", "")).strip()
-            incompat_a = str(fila_a.get("incompatibilidad", "")).strip()
-
-            compat_b = str(fila_b.get("compatibilidad", "")).strip()
-            incompat_b = str(fila_b.get("incompatibilidad", "")).strip()
-
-            if nombre_a == nombre_b:
-                st.info("Selecciona dos productos distintos para comparar.")
-            else:
-                compatible = False
-                incompatible = False
-                detalles = []
-
-                if etiqueta_menciona_producto(compat_a, nombre_b):
-                    compatible = True
-                    detalles.append(
-                        f"La etiqueta de {nombre_a} menciona compatibilidad con {nombre_b}."
-                    )
-
-                if etiqueta_menciona_producto(compat_b, nombre_a):
-                    compatible = True
-                    detalles.append(
-                        f"La etiqueta de {nombre_b} menciona compatibilidad con {nombre_a}."
-                    )
-
-                if etiqueta_menciona_producto(incompat_a, nombre_b):
-                    incompatible = True
-                    detalles.append(
-                        f"La etiqueta de {nombre_a} menciona incompatibilidad con {nombre_b}."
-                    )
-
-                if etiqueta_menciona_producto(incompat_b, nombre_a):
-                    incompatible = True
-                    detalles.append(
-                        f"La etiqueta de {nombre_b} menciona incompatibilidad con {nombre_a}."
-                    )
-
-                if incompatible:
-                    st.error("No compatible según etiqueta.")
-                    for detalle in detalles:
-                        st.write(detalle)
-
-                elif compatible:
-                    st.success("Compatible según etiqueta.")
-                    for detalle in detalles:
-                        st.write(detalle)
-
-                else:
-                    st.warning(
-                        "No hay información suficiente en las etiquetas guardadas para confirmar compatibilidad. "
-                        "Revisar etiqueta SAG oficial antes de mezclar productos."
-                    )
-
-                    st.write(
-                        f"No se encontró una compatibilidad directa entre **{nombre_a}** y **{nombre_b}**."
-                    )
-
-                    if compat_a.strip() == "" or compat_a.lower() == "nan":
-                        st.write(f"**{nombre_a}** no tiene información de compatibilidad cargada.")
-                    else:
-                        st.write(f"**Compatibilidad registrada para {nombre_a}:**")
-                        st.write(compat_a)
-
-                    if compat_b.strip() == "" or compat_b.lower() == "nan":
-                        st.write(f"**{nombre_b}** no tiene información de compatibilidad cargada.")
-                    else:
-                        st.write(f"**Compatibilidad registrada para {nombre_b}:**")
-                        st.write(compat_b)
-
-                    if incompat_a.strip() != "" and incompat_a.lower() != "nan":
-                        st.write(f"**Incompatibilidad general de {nombre_a}:**")
-                        st.write(incompat_a)
-
-                    if incompat_b.strip() != "" and incompat_b.lower() != "nan":
-                        st.write(f"**Incompatibilidad general de {nombre_b}:**")
-                        st.write(incompat_b)
-
-                    st.info(
-                        "La app solo confirma compatibilidad cuando una etiqueta menciona claramente al otro producto. "
-                        "Si no aparece, no significa que sean incompatibles; significa que falta información."
-                    )
-
-                    st.write("Puedes completar esta información manualmente:")
-
-                    col_manual_a, col_manual_b = st.columns(2)
-
-                    with col_manual_a:
-                        if st.button(
-                            f"Completar compatibilidad de {nombre_a}",
-                            key=f"btn_completar_compat_a_{fila_a['id']}_{fila_b['id']}"
-                        ):
-                            st.session_state["producto_compatibilidad_manual"] = producto_a_label
-                            st.rerun()
-
-                    with col_manual_b:
-                        if st.button(
-                            f"Completar compatibilidad de {nombre_b}",
-                            key=f"btn_completar_compat_b_{fila_a['id']}_{fila_b['id']}"
-                        ):
-                            st.session_state["producto_compatibilidad_manual"] = producto_b_label
-                            st.rerun()
-
-                with st.expander("Ver información de compatibilidad usada para comparar"):
-                    st.write(f"**Compatibilidad de {nombre_a}:**")
-                    st.write(compat_a if compat_a else "Sin información")
-
-                    st.write(f"**Incompatibilidad de {nombre_a}:**")
-                    st.write(incompat_a if incompat_a else "Sin información")
-
-                    st.write(f"**Compatibilidad de {nombre_b}:**")
-                    st.write(compat_b if compat_b else "Sin información")
-
-                    st.write(f"**Incompatibilidad de {nombre_b}:**")
-                    st.write(incompat_b if incompat_b else "Sin información")
-
-            st.divider()
-
-        if not df_mostrar.empty:
-            st.subheader("Agregar compatibilidad manual")
-
-            opciones_manual = {}
-
-            for _, fila in df.iterrows():
-                etiqueta = f'{fila["nombre"]} | {fila["tipo"]} | {fila["pdf"]} | ID {fila["id"]}'
-                opciones_manual[etiqueta] = fila
-
-            producto_manual = st.selectbox(
-                "Selecciona producto para editar compatibilidad",
-                list(opciones_manual.keys()),
-                key="producto_compatibilidad_manual"
+        with col_selector:
+            st.markdown(
+                '<div class="base-funcional-marker base-selector-marker"></div>',
+                unsafe_allow_html=True
             )
 
-            fila_manual = opciones_manual[producto_manual]
-
-            compat_actual = str(fila_manual.get("compatibilidad", "")).strip()
-            incompat_actual = str(fila_manual.get("incompatibilidad", "")).strip()
-            fito_actual = str(fila_manual.get("fitotoxicidad", "")).strip()
-
-            if compat_actual.lower() == "nan":
-                compat_actual = ""
-
-            if incompat_actual.lower() == "nan":
-                incompat_actual = ""
-
-            if fito_actual.lower() == "nan":
-                fito_actual = ""
-
-            compat_manual = st.text_area(
-                "Compatible con",
-                value=compat_actual,
-                key=f"compat_manual_{fila_manual['id']}"
+            st.markdown(
+                """
+                <div class="base-selector-title">
+                    <span class="base-selector-icon">▯</span>
+                    <span>Seleccionar producto</span>
+                </div>
+                <div class="base-selector-subtitle">
+                    Busca y selecciona un producto de la base de datos.
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
-            incompat_manual = st.text_area(
-                "Incompatible con",
-                value=incompat_actual,
-                key=f"incompat_manual_{fila_manual['id']}"
+            producto_seleccionado = st.selectbox(
+                "Producto",
+                list(opciones_productos.keys()),
+                key="base_producto_seleccionado",
+                label_visibility="collapsed"
             )
 
-            fito_manual = st.text_area(
-                "Fitotoxicidad",
-                value=fito_actual,
-                key=f"fito_manual_{fila_manual['id']}"
+        fila_seleccionada = opciones_productos[
+            producto_seleccionado
+        ]
+
+        producto_id = int(
+            fila_seleccionada["id"]
+        )
+
+        nombre_producto = str(
+            fila_seleccionada.get(
+                "nombre",
+                ""
             )
+        ).strip()
 
-            if st.button("Guardar compatibilidad manual"):
-                guardar_compatibilidad_manual(
-                    int(fila_manual["id"]),
-                    compat_manual,
-                    incompat_manual,
-                    fito_manual
-                )
-
-                st.success("Compatibilidad manual guardada correctamente")
-                st.rerun()
-
-            st.divider()
-
-        if not df_mostrar.empty:
-            st.subheader("Generar ficha técnica")
-
-            opciones_ficha = {}
-
-            for _, fila in df_mostrar.iterrows():
-                etiqueta = f'{fila["nombre"]} | {fila["tipo"]} | {fila["pdf"]} | ID {fila["id"]}'
-                opciones_ficha[etiqueta] = fila
-
-            producto_ficha = st.selectbox(
-                "Selecciona un producto para generar ficha",
-                list(opciones_ficha.keys())
+        referencia_pdf = str(
+            fila_seleccionada.get(
+                "pdf",
+                ""
             )
+        ).strip()
 
-            fila_ficha = opciones_ficha[producto_ficha]
+        pdf_bytes = None
+        nombre_pdf = ""
 
-            st.subheader("Vista visual del producto")
-
-            nombre_visual = str(fila_ficha.get("nombre", "")).replace("CONSENTIMIENTO", "CONSENTO")
-            tipo_visual = str(fila_ficha.get("tipo", ""))
-            grupo_visual = str(fila_ficha.get("grupo", ""))
-
-            st.info(
-                f"**Producto:** {nombre_visual} | **Tipo:** {tipo_visual} | **Grupo:** {grupo_visual}"
-            )
-
-            problema_visual = str(fila_ficha.get("problema", "")).strip()
-
-            if problema_visual == "" or problema_visual.lower() == "nan":
-                enfermedades_visual = str(fila_ficha.get("enfermedades", "")).strip()
-                insectos_visual = str(fila_ficha.get("insectos", "")).strip()
-
-                problema_visual = ", ".join(
-                    dato for dato in [enfermedades_visual, insectos_visual]
-                    if dato != "" and dato.lower() != "nan"
-                )
-
-            col_v1, col_v2, col_v3 = st.columns(3)
-
-            with col_v1:
-                st.markdown("### 🧪 Grupo químico")
-                st.write(fila_ficha.get("grupo", ""))
-
-                st.markdown("### 🧬 Composición")
-                st.write(fila_ficha.get("ingrediente", ""))
-
-                st.markdown("### 🐛 Problema")
-                st.write(problema_visual)
-
-            with col_v2:
-                st.markdown("### 👩‍🌾 Aplicación")
-                st.write("**Dosis:**")
-                st.write(fila_ficha.get("dosis", ""))
-
-                st.write("**Cultivos:**")
-                st.write(fila_ficha.get("cultivos", ""))
-
-                st.write("**Carencia:**")
-                st.write(fila_ficha.get("carencia", ""))
-
-            with col_v3:
-                st.markdown("### 🔗 Compatibilidad")
-                compatibilidad_visual = str(fila_ficha.get("compatibilidad", "")).strip()
-                incompatibilidad_visual = str(fila_ficha.get("incompatibilidad", "")).strip()
-                fitotoxicidad_visual = str(fila_ficha.get("fitotoxicidad", "")).strip()
-
-                if compatibilidad_visual != "" and compatibilidad_visual.lower() != "nan":
-                    st.success(compatibilidad_visual)
-                else:
-                    st.write("Sin información de compatibilidad.")
-
-                st.markdown("### ❗ Incompatibilidad")
-                if incompatibilidad_visual != "" and incompatibilidad_visual.lower() != "nan":
-                    st.error(incompatibilidad_visual)
-                else:
-                    st.write("Sin información de incompatibilidad.")
-
-                st.markdown("### 💀 Fitotoxicidad")
-                if fitotoxicidad_visual != "" and fitotoxicidad_visual.lower() != "nan":
-                    st.warning(fitotoxicidad_visual)
-                else:
-                    st.write("Sin información de fitotoxicidad.")
-
-                st.markdown("### 🚶 Reingreso")
-                st.write(fila_ficha.get("reingreso", ""))
-
-                st.markdown("### 🐝 Abejas")
-                abejas_visual = str(fila_ficha.get("toxicidad_abejas", ""))
-
-                if "altamente" in abejas_visual.lower() or "muy" in abejas_visual.lower():
-                    st.error(abejas_visual)
-                elif abejas_visual != "":
-                    st.warning(abejas_visual)
-                else:
-                    st.write("Sin información")
-
-            st.warning("Revisar siempre la etiqueta SAG oficial antes de aplicar.")
-            st.caption(f"PDF de respaldo: {fila_ficha.get('pdf', '')}")
-
-            archivo_ficha = generar_ficha_word(fila_ficha)
-
-            st.download_button(
-                label="Descargar ficha técnica en Word",
-                data=archivo_ficha,
-                file_name=nombre_archivo_ficha(fila_ficha["nombre"]),
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
-
-            pdf_respaldo = str(fila_ficha.get("pdf", "")).strip()
-
+        if (
+            referencia_pdf
+            and referencia_pdf.lower() != "nan"
+        ):
             try:
-                pdf_respaldo_bytes, nombre_pdf_respaldo = (
-                    obtener_pdf_bytes(pdf_respaldo)
+                pdf_bytes, nombre_pdf = obtener_pdf_bytes(
+                    referencia_pdf
                 )
             except Exception as error:
-                pdf_respaldo_bytes = None
-                nombre_pdf_respaldo = pdf_respaldo
                 st.warning(
-                    f"No fue posible abrir el PDF de respaldo: {error}"
+                    "No fue posible obtener el PDF: "
+                    f"{error}"
                 )
 
-            if pdf_respaldo_bytes:
-                with st.expander(
-                    "Ver PDF de respaldo del producto seleccionado"
-                ):
-                    mostrar_pdf_bytes(pdf_respaldo_bytes)
+        with col_botones:
+            st.markdown(
+                '<div class="base-funcional-marker base-botones-marker"></div>',
+                unsafe_allow_html=True
+            )
 
+            if st.button(
+                "▣  Ver PDF del producto seleccionado",
+                key=f"base_ver_pdf_{producto_id}",
+                use_container_width=True,
+                disabled=not bool(pdf_bytes)
+            ):
+                st.session_state[
+                    "base_pdf_visible_id"
+                ] = producto_id
+
+            if pdf_bytes:
                 st.download_button(
-                    label="Descargar PDF de respaldo",
-                    data=pdf_respaldo_bytes,
-                    file_name=nombre_pdf_respaldo,
+                    "▣  Descargar PDF seleccionado",
+                    data=pdf_bytes,
+                    file_name=(
+                        nombre_pdf
+                        or f"{nombre_producto}.pdf"
+                    ),
                     mime="application/pdf",
-                    key=f"descargar_pdf_respaldo_{fila_ficha['id']}"
+                    key=(
+                        "base_descargar_pdf_"
+                        f"{producto_id}"
+                    ),
+                    use_container_width=True
                 )
             else:
-                st.warning("PDF de respaldo no disponible.")
+                st.button(
+                    "▣  Descargar PDF seleccionado",
+                    key=(
+                        "base_descargar_pdf_"
+                        f"desactivado_{producto_id}"
+                    ),
+                    disabled=True,
+                    use_container_width=True
+                )
 
-        df_mostrar["problema"] = (
-            df_mostrar["enfermedades"].astype(str).replace("nan", "")
-            + ", "
-            + df_mostrar["insectos"].astype(str).replace("nan", "")
+        st.markdown(
+            (
+                '<div class="base-producto-seleccionado">'
+                f'Producto seleccionado: '
+                f'<strong>{html.escape(nombre_producto)}</strong>'
+                '</div>'
+            ),
+            unsafe_allow_html=True
         )
 
-        df_mostrar["problema"] = df_mostrar["problema"].str.strip(", ").str.strip()
+        if (
+            st.session_state.get(
+                "base_pdf_visible_id"
+            ) == producto_id
+            and pdf_bytes
+        ):
+            with st.expander(
+                f"PDF de {nombre_producto}",
+                expanded=True
+            ):
+                mostrar_pdf_bytes(
+                    pdf_bytes,
+                    alto=650
+                )
 
-        df_mostrar["Eliminar"] = False
-
-        columnas = [
-            "id",
-            "nombre",
-            "tipo",
-            "dosis",
-            "cultivos",
-            "problema",
-            "ingrediente",
-            "grupo",
-            "carencia",
-            "reingreso",
-            "toxicidad_abejas",
-            "pdf",
-            "Eliminar"
-        ]
-
-        df_mostrar = df_mostrar[columnas]
-
-        gb = GridOptionsBuilder.from_dataframe(df_mostrar)
-
-        gb.configure_default_column(
-            filter=True,
-            sortable=True,
-            resizable=True,
-            wrapText=False,
-            autoHeight=False
+        st.markdown(
+            '<div class="base-admin-wrapper">',
+            unsafe_allow_html=True
         )
 
-        gb.configure_pagination(
-            paginationAutoPageSize=False,
-            paginationPageSize=10
+        with st.expander(
+            "⚙️ Administración avanzada",
+            expanded=False
+        ):
+            st.caption(
+                "Esta sección permite eliminar un producto "
+                "y su archivo PDF."
+            )
+
+            with st.expander(
+                "🧹 Eliminar PDF repetidos",
+                expanded=False
+            ):
+                st.caption(
+                    "Mantiene solo una ficha por cada PDF guardado. "
+                    "No elimina el archivo PDF de Supabase si todavía queda "
+                    "un producto usando ese PDF."
+                )
+
+                st.warning(
+                    "Esta limpieza elimina fichas duplicadas de la base de datos. "
+                    "Se conserva el registro más nuevo por cada PDF."
+                )
+
+                confirmar_duplicados = st.checkbox(
+                    "Confirmo que deseo eliminar fichas con PDF repetido",
+                    key="base_confirmar_eliminar_duplicados_pdf"
+                )
+
+                if st.button(
+                    "Eliminar PDF repetidos",
+                    key="base_eliminar_duplicados_pdf",
+                    use_container_width=True,
+                    disabled=not confirmar_duplicados
+                ):
+                    try:
+                        with st.spinner(
+                            "Buscando y eliminando duplicados..."
+                        ):
+                            resultado_limpieza = eliminar_duplicados()
+
+                        eliminados = resultado_limpieza.get(
+                            "eliminados",
+                            0
+                        )
+
+                        mensaje = resultado_limpieza.get(
+                            "mensaje",
+                            "Limpieza finalizada."
+                        )
+
+                        if eliminados > 0:
+                            st.success(mensaje)
+                            st.rerun()
+                        else:
+                            st.info(mensaje)
+
+                        errores = resultado_limpieza.get(
+                            "errores",
+                            []
+                        )
+
+                        if errores:
+                            with st.expander(
+                                "Ver errores de eliminación",
+                                expanded=False
+                            ):
+                                for error in errores:
+                                    st.write(error)
+
+                    except Exception as error:
+                        st.error(
+                            "No fue posible eliminar los duplicados: "
+                            f"{error}"
+                        )
+
+
+            with st.expander(
+                "✏️ Editar producto guardado",
+                expanded=False
+            ):
+                st.caption(
+                    "Modifica los datos técnicos guardados para este producto. "
+                    "El PDF se mantiene asociado al producto."
+                )
+
+                with st.form(
+                    key=f"form_editar_producto_{producto_id}"
+                ):
+                    edit_nombre = st.text_input(
+                        "Producto",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("nombre", "")
+                        )
+                    )
+
+                    edit_ingrediente = st.text_area(
+                        "Ingrediente activo",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("ingrediente", "")
+                        ),
+                        height=90
+                    )
+
+                    edit_grupo = st.text_input(
+                        "Grupo IRAC / FRAC / HRAC",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("grupo", "")
+                        )
+                    )
+
+                    tipo_actual = limpiar_valor(
+                        fila_seleccionada.get("tipo", "")
+                    )
+
+                    opciones_tipo = [
+                        "Insecticida",
+                        "Fungicida",
+                        "Herbicida",
+                        "Acaricida",
+                        "Biológico",
+                        "Insecticida - Fungicida",
+                        "Otro"
+                    ]
+
+                    if tipo_actual not in opciones_tipo:
+                        opciones_tipo.append(tipo_actual)
+
+                    edit_tipo = st.selectbox(
+                        "Tipo",
+                        opciones_tipo,
+                        index=(
+                            opciones_tipo.index(tipo_actual)
+                            if tipo_actual in opciones_tipo
+                            else 0
+                        )
+                    )
+
+                    edit_cultivos = st.text_area(
+                        "Cultivos",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("cultivos", "")
+                        ),
+                        height=90
+                    )
+
+                    etiqueta_enfermedades = (
+                        "Enfermedades / problemas controlados"
+                    )
+
+                    if "herbicida" in edit_tipo.lower():
+                        etiqueta_enfermedades = "Malezas controladas"
+
+                    edit_enfermedades = st.text_area(
+                        etiqueta_enfermedades,
+                        value=limpiar_valor(
+                            fila_seleccionada.get("enfermedades", "")
+                        ),
+                        height=110
+                    )
+
+                    edit_insectos = st.text_area(
+                        "Insectos o plagas",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("insectos", "")
+                        ),
+                        height=110
+                    )
+
+                    edit_dosis = st.text_area(
+                        "Dosis",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("dosis", "")
+                        ),
+                        height=90
+                    )
+
+                    edit_reingreso = st.text_area(
+                        "Reingreso",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("reingreso", "")
+                        ),
+                        height=90
+                    )
+
+                    edit_carencia = st.text_area(
+                        "Carencia",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("carencia", "")
+                        ),
+                        height=90
+                    )
+
+                    edit_abejas = st.text_area(
+                        "Toxicidad abejas",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("toxicidad_abejas", "")
+                        ),
+                        height=80
+                    )
+
+                    edit_compatibilidad = st.text_area(
+                        "Compatibilidad",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("compatibilidad", "")
+                        ),
+                        height=100
+                    )
+
+                    edit_incompatibilidad = st.text_area(
+                        "Incompatibilidad",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("incompatibilidad", "")
+                        ),
+                        height=100
+                    )
+
+                    edit_fitotoxicidad = st.text_area(
+                        "Fitotoxicidad",
+                        value=limpiar_valor(
+                            fila_seleccionada.get("fitotoxicidad", "")
+                        ),
+                        height=100
+                    )
+
+                    guardar_edicion = st.form_submit_button(
+                        "Guardar cambios del producto",
+                        use_container_width=True,
+                        type="primary"
+                    )
+
+                    if guardar_edicion:
+                        try:
+                            actualizar_producto(
+                                producto_id,
+                                edit_nombre,
+                                edit_ingrediente,
+                                edit_grupo,
+                                edit_tipo,
+                                edit_cultivos,
+                                edit_enfermedades,
+                                edit_insectos,
+                                dosis=edit_dosis,
+                                compatibilidad=edit_compatibilidad,
+                                incompatibilidad=edit_incompatibilidad,
+                                fitotoxicidad=edit_fitotoxicidad,
+                                reingreso=edit_reingreso,
+                                carencia=edit_carencia,
+                                toxicidad_abejas=edit_abejas,
+                                pdf=referencia_pdf
+                            )
+
+                            st.success(
+                                "Producto actualizado correctamente."
+                            )
+
+                            st.rerun()
+
+                        except Exception as error:
+                            st.error(
+                                "No fue posible actualizar el producto: "
+                                f"{error}"
+                            )
+
+
+            with st.expander(
+                "🗑️ Eliminar producto",
+                expanded=False
+            ):
+                st.warning(
+                    "Esta acción es permanente. Se eliminará "
+                    "el producto de la base de datos y también "
+                    "su PDF almacenado."
+                )
+
+                confirmar = st.checkbox(
+                    (
+                        "Confirmo que deseo eliminar "
+                        f"{nombre_producto}"
+                    ),
+                    key=(
+                        "base_confirmar_eliminar_"
+                        f"{producto_id}"
+                    )
+                )
+
+                if st.button(
+                    "Eliminar producto y PDF",
+                    key=f"base_eliminar_{producto_id}",
+                    use_container_width=True,
+                    disabled=not confirmar
+                ):
+                    try:
+                        with st.spinner(
+                            "Eliminando producto y PDF..."
+                        ):
+                            if (
+                                referencia_pdf
+                                and referencia_pdf.lower()
+                                != "nan"
+                            ):
+                                eliminar_pdf_storage(
+                                    referencia_pdf
+                                )
+
+                            eliminar_producto(
+                                producto_id
+                            )
+
+                        st.session_state.pop(
+                            "base_pdf_visible_id",
+                            None
+                        )
+
+                        st.success(
+                            f"{nombre_producto} fue eliminado."
+                        )
+
+                        st.rerun()
+
+                    except Exception as error:
+                        st.error(
+                            "No fue posible eliminar el producto: "
+                            f"{error}"
+                        )
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
         )
-
-        gb.configure_column("id", headerName="ID", editable=False, hide=True)
-        gb.configure_column("nombre", headerName="Producto", editable=False, pinned="left", width=200)
-        gb.configure_column("tipo", headerName="Tipo", editable=False, width=130)
-        gb.configure_column("dosis", headerName="Dosis", editable=False, width=180)
-        gb.configure_column("cultivos", headerName="Cultivos", editable=False, width=220)
-        gb.configure_column("problema", headerName="Problema", editable=False, width=230)
-        gb.configure_column("ingrediente", headerName="Ingrediente activo", editable=False, width=220)
-        gb.configure_column("grupo", headerName="Grupo", editable=False, width=130)
-        gb.configure_column("carencia", headerName="Carencia", editable=False, width=230)
-        gb.configure_column("reingreso", headerName="Reingreso", editable=False, width=140)
-        gb.configure_column("toxicidad_abejas", headerName="Abejas", editable=False, width=230)
-        gb.configure_column("pdf", headerName="PDF", editable=False, width=260)
-
-        gb.configure_column(
-            "Eliminar",
-            headerName="Eliminar",
-            editable=True,
-            cellRenderer="agCheckboxCellRenderer",
-            cellEditor="agCheckboxCellEditor",
-            pinned="right",
-            width=120
-        )
-
-        grid_options = gb.build()
-        grid_options["rowHeight"] = 38
-        grid_options["headerHeight"] = 42
-
-        grid_response = AgGrid(
-            df_mostrar,
-            gridOptions=grid_options,
-            update_mode=GridUpdateMode.VALUE_CHANGED,
-            height=430,
-            use_container_width=True,
-            fit_columns_on_grid_load=False,
-            allow_unsafe_jscode=True
-        )
-
-        datos_editados = pd.DataFrame(grid_response["data"])
-
-        productos_eliminar = datos_editados[
-            datos_editados["Eliminar"] == True
-        ]
-
-        if not productos_eliminar.empty:
-            st.warning(f"{len(productos_eliminar)} producto(s) marcado(s) para eliminar")
-
-            if st.button("Eliminar marcados"):
-                for _, fila in productos_eliminar.iterrows():
-                    eliminar_producto(int(fila["id"]))
-
-                st.success("Producto(s) eliminado(s)")
-                st.rerun()
 
 if False:
     # Pantalla antigua Manual de uso desactivada para dejar solo dos pantallas visibles.
@@ -4952,26 +6908,61 @@ if False:
             "cultivo autorizado, carencia, reingreso, compatibilidad e incompatibilidades."
         )
 
-
-# Visor PDF final forzado
+# Visor PDF compatible con Streamlit Cloud
 def mostrar_pdf_bytes(pdf_bytes, alto=850):
-    import base64
+    import hashlib
+    import fitz
     import streamlit as st
 
     if not pdf_bytes:
         st.warning("No se pudo cargar el PDF.")
         return
 
-    base64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+    try:
+        documento = fitz.open(
+            stream=pdf_bytes,
+            filetype="pdf"
+        )
 
-    st.markdown(
-        f"""
-        <iframe
-            src="data:application/pdf;base64,{base64_pdf}"
-            width="100%"
-            height="{alto}"
-            style="border: 1px solid #d1d5db; border-radius: 12px; background: white;">
-        </iframe>
-        """,
-        unsafe_allow_html=True
-    )
+        total_paginas = documento.page_count
+
+        if total_paginas == 0:
+            st.warning("El PDF no contiene páginas.")
+            documento.close()
+            return
+
+        identificador = hashlib.sha1(pdf_bytes).hexdigest()[:12]
+
+        pagina_seleccionada = st.number_input(
+            "Página del PDF",
+            min_value=1,
+            max_value=total_paginas,
+            value=1,
+            step=1,
+            key=f"pagina_pdf_{identificador}"
+        )
+
+        pagina = documento.load_page(
+            int(pagina_seleccionada) - 1
+        )
+
+        matriz = fitz.Matrix(1.7, 1.7)
+        imagen = pagina.get_pixmap(
+            matrix=matriz,
+            alpha=False
+        ).tobytes("png")
+
+        st.caption(
+            f"Página {int(pagina_seleccionada)} de {total_paginas}"
+        )
+
+        st.image(
+            imagen,
+            use_container_width=True
+        )
+
+        documento.close()
+
+    except Exception as error:
+        st.error(f"No fue posible visualizar el PDF: {error}")
+
